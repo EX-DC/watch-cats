@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="fa">
+<head>
+<meta charset="utf-8">
+<title>داشبورد مانیتورینگ LanCache</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;800&amp;display=swap">
+<style>
+body{margin:0;background:#0f1419}
+@keyframes p{0%,100%{opacity:1}50%{opacity:.3}}
+.dot{animation:p 1s infinite}
+button{font-family:inherit;color:inherit;cursor:pointer}
+</style>
+</helmet>
+<div dir="rtl" style="background:#0f1419;color:#e6edf3;font-family:'Vazirmatn',system-ui,sans-serif;box-sizing:border-box;padding:32px;display:flex;flex-direction:column;gap:24px">
+
+<div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between">
+<div style="display:flex;flex-direction:column;gap:4px">
+<h1 style="margin:0;font-size:34px;font-weight:800">LanCache Monitor</h1>
+<span style="font-size:16px;color:#9aa7b4">سرور 192.168.1.35 · همهٔ اعداد این صفحه نمونه‌ست</span>
+</div>
+<span style="padding:8px 16px;border-radius:999px;background:#16382b;color:#3ddc97;font-weight:600;font-size:16px"><span class="dot">●</span> بروزرسانی زنده · هر ۱ ثانیه</span>
+</div>
+
+<div style="display:flex;flex-wrap:wrap;gap:12px">
+<sc-for list="{{alerts}}" as="a" hint-placeholder-count="5">
+<div style="padding:10px 16px;border-radius:12px;background:#171d26;font-size:16px;border:1px solid {{a.c}};display:flex;gap:8px"><b style="color:{{a.c}}">{{a.s}}</b><span>{{a.n}}</span><span style="color:#9aa7b4">{{a.d}}</span></div>
+</sc-for>
+</div>
+
+<div style="display:flex;flex-wrap:wrap;gap:16px">
+<sc-for list="{{gauges}}" as="g" hint-placeholder-count="2">
+<div style="flex:1 1 300px;min-width:0;background:#171d26;border-radius:12px;padding:20px;display:flex;flex-direction:column;align-items:center;gap:8px">
+<span style="font-size:19px;font-weight:600">{{g.t}}</span>
+<div dir="ltr" style="position:relative;width:240px;height:125px;overflow:hidden">
+<div style="position:absolute;left:0;top:0;width:240px;height:240px;border-radius:50%;background:conic-gradient(from -90deg,{{g.c}} 0deg {{g.deg}}deg,#26303d {{g.deg}}deg 180deg,transparent 180deg)"></div>
+<div style="position:absolute;left:30px;top:30px;width:180px;height:180px;border-radius:50%;background:#171d26"></div>
+<div style="position:absolute;left:118px;top:35px;width:4px;height:85px;background:#e6edf3;border-radius:2px;transform-origin:50% 100%;transform:{{g.needle}}"></div>
+</div>
+<span style="font-size:34px;font-weight:800;color:{{g.c}}">{{g.v}}</span>
+<span style="font-size:15px;color:#9aa7b4">{{g.sub}}</span>
+</div>
+</sc-for>
+</div>
+<div style="background:#171d26;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:14px">
+<h2 style="margin:0;font-size:24px;font-weight:800">۳ سیستم در حال دریافت از کش</h2>
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px">
+<sc-for list="{{clients}}" as="c" hint-placeholder-count="3">
+<div style="background:#0f1419;border-radius:12px;padding:18px;display:flex;justify-content:space-between;gap:12px">
+<div style="display:flex;flex-direction:column;gap:8px;min-width:0">
+<div style="display:flex;gap:10px;align-items:center"><span style="width:36px;height:36px;flex:0 0 36px;border-radius:10px;background:{{c.dbg}};color:{{c.dfg}};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px">{{c.di}}</span><b style="font-size:20px">{{c.dn}}</b></div>
+<span style="font-size:15px;color:#9aa7b4">{{c.ip}} · {{c.how}}</span>
+</div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+<span style="width:52px;height:52px;flex:0 0 52px;border-radius:10px;background:{{c.bg}};color:{{c.fg}};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px">{{c.ic}}</span><span style="font-size:16px;font-weight:600">{{c.sv}}</span>
+<span style="margin-top:16px;font-size:24px;font-weight:800;color:#3ddc97">{{c.sp}}</span>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+<div style="background:#171d26;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:14px">
+<h2 style="margin:0;font-size:24px;font-weight:800">منابع سرور · لحظه‌ای</h2>
+<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px">
+<sc-for list="{{hw}}" as="h" hint-placeholder-count="4">
+<div style="background:#0f1419;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px">
+<span style="font-size:16px;color:#9aa7b4">{{h.l}}</span><span style="font-size:24px;font-weight:800">{{h.v}}</span>
+<div style="height:8px;border-radius:4px;background:#26303d"><div style="height:8px;border-radius:4px;background:{{h.c}};width:{{h.w}}"></div></div>
+<span style="font-size:14px;color:#9aa7b4">{{h.s}}</span>
+</div>
+</sc-for>
+</div>
+</div>
+
+<div style="background:#171d26;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:14px">
+<h2 style="margin:0;font-size:24px;font-weight:800">فعالیت زنده به تفکیک سرویس</h2>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px">
+<sc-for list="{{live}}" as="l" hint-placeholder-count="6">
+<div style="background:#0f1419;border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:18px">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+<span style="display:flex;gap:12px;align-items:center;font-weight:800;font-size:20px"><span style="width:44px;height:44px;flex:0 0 44px;border-radius:10px;background:{{l.bg}};color:{{l.fg}};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px">{{l.ic}}</span>{{l.n}}</span>
+<span style="font-size:15px;font-weight:600;padding:4px 12px;border-radius:999px;background:#171d26;color:{{l.stc}}">{{l.st}}</span>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span style="font-size:17px;color:#f5a524">در حال دانلود و ذخیره</span><span style="font-size:24px;font-weight:800;color:#f5a524">{{l.fv}}</span></div><div style="height:14px;border-radius:7px;background:#26303d"><div style="height:14px;border-radius:7px;background:#f5a524;width:{{l.fw}}"></div></div></div>
+<div style="display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span style="font-size:17px;color:#3ddc97">در حال سرو از کش · {{l.cl}} سیستم</span><span style="font-size:24px;font-weight:800;color:#3ddc97">{{l.sv}}</span></div><div style="height:14px;border-radius:7px;background:#26303d"><div style="height:14px;border-radius:7px;background:#3ddc97;width:{{l.sw}}"></div></div></div>
+</div>
+</sc-for>
+</div>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px">
+<sc-for list="{{kpis}}" as="k" hint-placeholder-count="4">
+<div style="background:#171d26;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:4px"><span style="font-size:16px;color:#9aa7b4">{{k.l}}</span><span style="font-size:34px;font-weight:800">{{k.v}}</span><span style="font-size:15px;color:#9aa7b4">{{k.s}}</span></div>
+</sc-for>
+</div>
+
+<div style="background:#171d26;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:14px">
+<h2 style="margin:0;font-size:24px;font-weight:800">حجم ذخیره‌شده به تفکیک سرویس (همهٔ سرویس‌های پشتیبانی‌شده)</h2>
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 24px">
+<sc-for list="{{services}}" as="s" hint-placeholder-count="12">
+<div style="display:flex;flex-direction:column;gap:5px"><div style="display:flex;justify-content:space-between;font-size:15px"><span style="display:flex;gap:8px;align-items:center;font-weight:600"><span style="width:38px;height:38px;flex:0 0 38px;border-radius:10px;background:{{s.bg}};color:{{s.fg}};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px">{{s.ic}}</span>{{s.n}}</span><span style="color:#9aa7b4">{{s.z}}</span></div><div style="height:8px;border-radius:4px;background:#0f1419"><div style="height:8px;border-radius:4px;background:#4da3ff;width:{{s.w}}"></div></div></div>
+</sc-for>
+</div>
+</div>
+
+<div style="background:#171d26;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:14px">
+<h2 style="margin:0;font-size:24px;font-weight:800">ترافیک ۲۴ ساعت اخیر</h2>
+<span style="font-size:17px;color:#9aa7b4;text-align:center">راهنما: هر ستون مجموع ترافیک یک ساعت است؛ ارتفاع ستون = حجم آن ساعت</span>
+<div dir="ltr" style="display:flex;gap:12px">
+<div style="display:flex;flex-direction:column;justify-content:space-between;height:200px;width:70px;font-size:15px;color:#9aa7b4;text-align:right"><sc-for list="{{yt}}" as="t"><span>{{t}}</span></sc-for></div>
+<div style="flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:8px">
+<div style="height:200px;border-left:1px solid #3a4656;border-bottom:1px solid #3a4656;background:repeating-linear-gradient(to bottom,#26303d 0,#26303d 1px,transparent 1px,transparent 50px);display:flex;align-items:flex-end;justify-content:space-around;padding:0 6px">
+<sc-for list="{{bars}}" as="b" hint-placeholder-count="24">
+<div style="width:12px;height:200px;display:flex;flex-direction:column;justify-content:flex-end"><div style="background:#f5a524;height:{{b.m}}"></div><div style="background:#3ddc97;height:{{b.h}}"></div></div>
+</sc-for>
+</div>
+<div style="display:flex;justify-content:space-between;font-size:15px;color:#9aa7b4"><sc-for list="{{xt}}" as="t"><span>{{t}}</span></sc-for></div>
+</div>
+</div>
+<span style="font-size:16px;color:#9aa7b4;text-align:center">محور عمودی: حجم ترافیک هر ساعت (GB) · محور افقی: زمان (از ۲۴ ساعت پیش تا اکنون)</span>
+<div style="display:flex;flex-wrap:wrap;justify-content:center;gap:12px 40px;font-size:17px;border-top:1px solid #26303d;padding-top:14px;text-align:center"><span><b style="color:#3ddc97">■ سبز · HIT</b> — از حافظهٔ کش سرو شد</span><span><b style="color:#f5a524">■ نارنجی · MISS</b> — از اینترنت گرفته و ذخیره شد</span></div>
+</div>
+<div style="background:#171d26;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:14px">
+<h2 style="margin:0;font-size:24px;font-weight:800">روند ۶۰ ثانیهٔ اخیر · لحظه‌ای</h2>
+<span style="font-size:17px;color:#9aa7b4;text-align:center">هر ستون دو ثانیه است؛ ارتفاع ستون = سرعت</span>
+<div dir="ltr" style="display:flex;gap:12px">
+<div style="display:flex;flex-direction:column;justify-content:space-between;height:140px;width:70px;font-size:15px;color:#9aa7b4;text-align:right"><sc-for list="{{yt2}}" as="t"><span>{{t}}</span></sc-for></div>
+<div style="flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:8px">
+<div style="height:140px;border-left:1px solid #3a4656;border-bottom:1px solid #3a4656;background:repeating-linear-gradient(to bottom,#26303d 0,#26303d 1px,transparent 1px,transparent 35px);display:flex;align-items:flex-end;justify-content:space-around;padding:0 6px">
+<sc-for list="{{live60}}" as="b" hint-placeholder-count="24">
+<div style="width:8px;height:140px;display:flex;flex-direction:column;justify-content:flex-end"><div style="background:#f5a524;height:{{b.m}}"></div><div style="background:#3ddc97;height:{{b.h}}"></div></div>
+</sc-for>
+</div>
+<div style="display:flex;justify-content:space-between;font-size:15px;color:#9aa7b4"><sc-for list="{{xt2}}" as="t"><span>{{t}}</span></sc-for></div>
+</div>
+</div>
+<span style="font-size:16px;color:#9aa7b4;text-align:center">محور عمودی: سرعت (Mbps) · محور افقی: زمان (از ۶۰ ثانیه پیش تا اکنون)</span>
+<div style="display:flex;flex-wrap:wrap;justify-content:center;gap:12px 40px;font-size:17px;border-top:1px solid #26303d;padding-top:14px;text-align:center"><span><b style="color:#3ddc97">■ سرو از کش</b></span><span><b style="color:#f5a524">■ دانلود و ذخیره</b></span></div>
+</div>
+<div style="background:#171d26;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:14px">
+<h2 style="margin:0;font-size:24px;font-weight:800">کلاینت‌ها</h2>
+<span style="font-size:17px;color:#9aa7b4">مرتب‌شده بر اساس بیشترین حجم مصرف در ۲۴ ساعت اخیر (HIT + MISS)</span>
+<div style="display:grid;grid-template-columns:1.3fr 1.6fr 1.3fr .9fr .9fr 1fr 1.1fr;gap:12px;font-size:16px;color:#9aa7b4;padding:8px 12px;border-bottom:1px solid #26303d"><span>آی‌پی</span><span>دستگاه (خودکار)</span><span>سرویس</span><span>HIT</span><span>MISS</span><span>سرعت</span><span>آخرین فعالیت</span></div>
+<sc-for list="{{top}}" as="r" hint-placeholder-count="4">
+<div style="display:grid;grid-template-columns:1.3fr 1.6fr 1.3fr .9fr .9fr 1fr 1.1fr;gap:12px;font-size:18px;padding:12px;border-radius:8px;background:{{r.row}};align-items:center"><span>{{r.ip}}</span><span style="display:flex;gap:8px;align-items:center;font-weight:600"><span style="width:30px;height:30px;flex:0 0 30px;border-radius:10px;background:{{r.dbg}};color:{{r.dfg}};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px">{{r.di}}</span>{{r.dn}}</span><span>{{r.sv}}</span><span style="color:#3ddc97">{{r.h}}</span><span style="color:#f5a524">{{r.m}}</span><span style="font-weight:800">{{r.sp}}</span><span style="color:#9aa7b4">{{r.last}}</span></div>
+</sc-for>
+</div>
+<div style="background:#171d26;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:12px">
+<h2 style="margin:0;font-size:24px;font-weight:800">خطاها · برای دیدن لاگ روی هر مورد کلیک کنید</h2>
+<sc-for list="{{errs}}" as="e" hint-placeholder-count="4">
+<div style="display:flex;flex-direction:column;gap:8px">
+<button onClick="{{e.pick}}" style="display:flex;justify-content:space-between;align-items:center;gap:12px;background:#0f1419;border:1px solid {{e.c}};border-radius:10px;padding:12px 16px;font-size:17px;text-align:start;min-height:44px"><span><b style="color:{{e.c}}">{{e.n}}</b> · {{e.src}}</span><span>{{e.cnt}} · آخرین: {{e.last}} {{e.arrow}}</span></button>
+<sc-if value="{{e.open}}" hint-placeholder-val="{{ false }}">
+<div dir="ltr" style="background:#0b0f14;border-radius:8px;padding:12px 16px;font-family:ui-monospace,monospace;font-size:14px;color:#9aa7b4;display:flex;flex-direction:column;gap:6px">
+<sc-for list="{{e.lines}}" as="ln" hint-placeholder-count="3"><span>{{ln}}</span></sc-for>
+</div>
+</sc-if>
+</div>
+</sc-for>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":2900}}'>
+class Component extends DCLogic {
+renderVals() {
+const open=this.state&&this.state.open;
+const gauge=(t,v,max,unit,c,sub)=>({t,v:v+' '+unit,c,sub,deg:Math.round(v/max*180),needle:'rotate('+Math.round(-90+v/max*180)+'deg)'});
+const B={'Steam':['ST','#2a475e','#fff'],'Epic Games':['EG','#3a3a3a','#fff'],'PlayStation':['PS','#0050c8','#fff'],'Xbox (کنسول)':['XB','#107c10','#fff'],'Xbox / Store (ویندوز)':['XW','#0b5f0b','#fff'],'Windows Update':['WU','#0078d4','#fff'],'Riot Games':['RG','#d13639','#fff'],'Ubisoft':['UB','#0070ff','#fff'],'EA / Origin':['EA','#e03a3a','#fff'],'Blizzard':['BZ','#00aeff','#0f1419'],'Rockstar':['RS','#fcaf17','#0f1419'],'Call of Duty':['CD','#4a4a4a','#fff'],'Nintendo':['NS','#e60012','#fff'],'Wargaming':['WG','#c8601a','#fff'],'Warframe':['WF','#5b6b8c','#fff']};
+const bg=n=>{const b=B[n]||['؟','#4a5568','#fff'];return {ic:b[0],bg:b[1],fg:b[2]};};
+const D={'ویندوز':['⊞','#0078d4','#fff'],'PS5':['PS','#0050c8','#fff'],'Xbox':['XB','#107c10','#fff']};
+const dv=n=>({di:D[n][0],dbg:D[n][1],dfg:D[n][2]});
+const hit=[20,35,15,10,5,5,8,12,30,45,50,40,35,30,38,42,55,70,85,95,80,60,40,30];
+const miss=[10,15,5,5,2,2,3,5,12,10,15,8,10,6,12,15,20,18,25,22,15,12,8,6];
+const l60=Array.from({length:30},(_,i)=>({h:(30+Math.round(25*Math.sin(i/3))+(i>20?15:0))+'%',m:(10+Math.round(8*Math.cos(i/4)))+'%'}));
+const sv=[['Steam',45],['Epic Games',30],['PlayStation',15],['Xbox (کنسول)',6],['Xbox / Store (ویندوز)',5],['Windows Update',9],['Riot Games',2],['Ubisoft',3],['EA / Origin',2],['Blizzard',1],['Rockstar',1],['Call of Duty',1],['Nintendo',1],['Wargaming',1],['Warframe',1],['سایر دامنه‌ها (مثلاً Gaijin)',2]];
+const lv=[['Steam','210 Mbps','21%',0,'0 Mbps','0%'],['Epic Games','0 Mbps','0%',1,'430 Mbps','43%'],['PlayStation','0 Mbps','0%',1,'160 Mbps','16%'],['Xbox (کنسول)','0 Mbps','0%',1,'50 Mbps','5%'],['Xbox / Store (ویندوز)','0 Mbps','0%',0,'0 Mbps','0%'],['Windows Update','0 Mbps','0%',0,'0 Mbps','0%']];
+const E=[
+{id:'a',n:'Upstream timeout (504)',src:'error.log',c:'#ff6b6b',cnt:'12 مورد',last:'15:14',lines:['[error] upstream timed out (110) ... host: egs-cloudfront-chunks.epicgamescdn.com','[error] upstream timed out (110) ... host: epicgames-download1.akamaized.net']},
+{id:'b',n:'خطای 403 از سمت CDN',src:'error.log',c:'#f5a524',cnt:'3 مورد',last:'14:40',lines:['[error] unexpected status code 403 in slice response ... host: gs2.ww.prod.dl.playstation.net']},
+{id:'c',n:'DNS: query failed (timed out)',src:'named/default.log',c:'#3ddc97',cnt:'0 مورد',last:'—',lines:['خطایی ثبت نشده']},
+{id:'d',n:'کانتینرها: restart یا unhealthy',src:'docker',c:'#3ddc97',cnt:'0 مورد',last:'—',lines:['همهٔ کانتینرها سالم‌اند']}
+];
+return {
+alerts:[{s:'سالم',c:'#3ddc97',n:'فضای دیسک',d:'5٪ · هشدار از 90٪'},{s:'هشدار',c:'#f5a524',n:'خطای upstream',d:'12 مورد در ساعت'},{s:'سالم',c:'#3ddc97',n:'DNS',d:'پاسخ‌گو'},{s:'سالم',c:'#3ddc97',n:'کش (heartbeat)',d:'204'},{s:'سالم',c:'#3ddc97',n:'کانتینرها',d:'2 از 2'},{s:'فعال',c:'#4da3ff',n:'اعلان مرورگر',d:'وقتی صفحه باز است'},{s:'فعال',c:'#4da3ff',n:'اعلان تلگرام',d:'حتی با بستن صفحه'}],
+gauges:[gauge('سرعت سرو از کش (HIT)',640,1000,'Mbps','#3ddc97','مجموع همهٔ کلاینت‌ها · سقف کارت شبکه 1000'),gauge('سرعت دانلود از اینترنت و ذخیره (MISS)',210,1000,'Mbps','#f5a524','مجموع همهٔ سرویس‌ها')],
+clients:[{dn:'ویندوز · Beta4',...dv('ویندوز'),...bg('Epic Games'),ip:'192.168.1.101',how:'NetBIOS',sv:'Epic Games',sp:'430 Mbps'},{dn:'PS5',...dv('PS5'),...bg('PlayStation'),ip:'192.168.1.152',how:'User-Agent',sv:'PlayStation',sp:'160 Mbps'},{dn:'Xbox',...dv('Xbox'),...bg('Xbox (کنسول)'),ip:'192.168.1.160',how:'MAC + دامنه',sv:'Xbox',sp:'50 Mbps'}],
+live:lv.map(a=>({st:a[3]>0?'در حال سرو':(a[2]!=='0%'?'در حال ذخیره':'بی‌کار'),stc:a[3]>0?'#3ddc97':(a[2]!=='0%'?'#f5a524':'#9aa7b4'),n:a[0],fv:a[1],fw:a[2],cl:a[3],sv:a[4],sw:a[5],...bg(a[0])})),
+kpis:[{l:'فضای مصرفی کش',v:'4.7 GB',s:'از 350 GB سقف'},{l:'نرخ HIT امروز',v:'62٪',s:'از کل درخواست‌ها'},{l:'حجم گرفته‌شده از اینترنت',v:'3.1 GB',s:'امروز'},{l:'دستگاه‌های فعال',v:'3',s:'از 12 دستگاه شناخته‌شده'}],
+services:sv.map(a=>({n:a[0],z:(a[1]/10).toFixed(1)+' GB',w:a[1]+'%',...bg(a[0])})),
+bars:hit.map((h,i)=>({h:h+'%',m:miss[i]+'%'})),
+live60:l60,
+top:[['192.168.1.101','ویندوز · Beta4','ویندوز','Epic Games','2.1 GB','0.4 GB','430 Mbps','اکنون'],['192.168.1.152','PS5','PS5','PlayStation','1.2 GB','0.3 GB','160 Mbps','اکنون'],['192.168.1.150','ویندوز','ویندوز','Steam','0 GB','1.1 GB','210 Mbps','اکنون'],['192.168.1.160','Xbox','Xbox','Xbox','0.3 GB','0.1 GB','50 Mbps','۲ دقیقه پیش']].map((a,i)=>({ip:a[0],dn:a[1],...dv(a[2]),sv:a[3],h:a[4],m:a[5],sp:a[6],last:a[7],row:i%2?'transparent':'#1d2530'})),
+hw:[{l:'CPU',v:'12٪',w:'12%',c:'#4da3ff',s:'8 هسته · میانگین ۱ دقیقه'},{l:'RAM',v:'3.1 / 16 GB',w:'19%',c:'#4da3ff',s:'19٪ مصرف'},{l:'کارت شبکه',v:'↓ 640 · ↑ 210',w:'64%',c:'#3ddc97',s:'Mbps · سقف 1000'},{l:'دیسک',v:'5٪ پر',w:'5%',c:'#f5a524',s:'خواندن 85 MB/s · نوشتن 26 MB/s'}],
+yt:['2 GB','1.5 GB','1 GB','0.5 GB','0'],xt:['۲۴ ساعت پیش','۱۸ ساعت پیش','۱۲ ساعت پیش','۶ ساعت پیش','اکنون'],yt2:['1000','750','500','250','0'],xt2:['۶۰ ثانیه پیش','۴۰','۲۰','اکنون'],
+errs:E.map(e=>({...e,open:open===e.id,arrow:open===e.id?'▲':'▼',pick:()=>this.setState({open:open===e.id?null:e.id})}))
+};
+}
+}
+</script>
+</body>
+</html>
