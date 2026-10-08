@@ -1,0 +1,6 @@
+{"cache_domains":[
+ {"name":"epicgames","description":"CDN for Epic Games","domain_files":["epicgames.txt"]},
+ {"name":"sony","description":"CDN for Sony","domain_files":["sony.txt"]},
+ {"name":"wsus","description":"CDN for Windows Updates","domain_files":["windowsupdates.txt"]},
+ {"name":"xboxlive","description":"CDN for Xbox Live","domain_files":["xboxlive.txt"]}
+]}
