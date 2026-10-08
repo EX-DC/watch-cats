@@ -1,0 +1,2 @@
+03-Oct-2026 22:38:36.504 client @0x7c8b74080338 192.168.1.152#52779 (uef.np.dl.playstation.net): rpz QNAME Local-Data rewrite uef.np.dl.playstation.net/A/IN via uef.np.dl.playstation.net.rpz
+03-Oct-2026 22:42:12.708 client @0x7c8b7d2f21b8 192.168.1.152#60821 (fuk01.ps5.update.playstation.net): query failed (timed out) for fuk01.ps5.update.playstation.net/IN/A at query.c:7899

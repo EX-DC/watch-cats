@@ -7,17 +7,26 @@
 > *Watch Cats is an independent companion dashboard for LanCache. It is not affiliated with the LanCache project or with any game store. Brand names belong to their owners.*
 
 ## وضعیت
-نسخهٔ `0.1.0` — فقط اسکلت پروژه. هنوز برنامه‌ای برای اجرا وجود ندارد.
+نسخهٔ `0.2.0` — خواندن و ذخیرهٔ لاگ‌ها آماده است (بدون رابط گرافیکی). رابط در مرحلهٔ ۴ می‌آید.
 
 ## نقشهٔ راه
 1. اسکلت پروژه ✅
-2. خواندن لاگ‌ها، تشخیص سرویس و دستگاه، ذخیره در SQLite
+2. خواندن لاگ‌ها، تشخیص سرویس و دستگاه، ذخیره در SQLite ✅
 3. API زنده (بروزرسانی ۱ ثانیه‌ای) و آمار CPU / RAM / شبکه / دیسک
 4. رابط گرافیکی (طبق `design/`)
 5. هشدارها: درون صفحه، مرورگر، تلگرام (+ اعلان وقتی ترافیک Epic روی HTTPS می‌رود و کش نمی‌شود)
 6. بستهٔ Docker و compose (سه کانتینر: DNS، monolithic، داشبورد)
 7. نصب با یک خط، بروزرسانی و حذف
 8. انتشار image در GHCR با GitHub Actions، نسخهٔ `1.0.0`
+
+## امتحان روی سرور (نسخهٔ ۰.۲.۰)
+فقط به Python 3.10 یا جدیدتر نیاز دارد (روی Linux Mint هست):
+```bash
+docker cp lancache-dns-1:/opt/cache-domains ./cache-domains
+PYTHONPATH=src python3 -m watchcats ingest --log-dir ~/lancache/lancache/logs \
+  --domains ./cache-domains --db watchcats.db --tz +03:30 --once
+PYTHONPATH=src python3 -m watchcats report --db watchcats.db
+```
 
 ## ابزار کمکی ویندوز
 `tools/windows/epic-http-fix.ps1` — برای هر کامپیوتر ویندوزی یک‌بار اجرا شود تا Epic از HTTP دانلود کند و LanCache بتواند کشش کند.

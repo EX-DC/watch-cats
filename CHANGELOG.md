@@ -6,6 +6,16 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-08
+### Added
+- Log parsers for LanCache `access.log`, `stream-access.log`, `error.log` and BIND `default.log` (request paths and tokens are never stored).
+- Incremental log reader that resumes after restarts and survives log rotation.
+- Hostname to service mapping from the `cache-domains` lists (wildcards supported).
+- Automatic device detection from User-Agent (PS5, PS4, Windows, PC; Xbox console rule is unverified).
+- SQLite storage with per-minute aggregation, atomic writes and retention purge.
+- CLI: `python -m watchcats ingest` and `python -m watchcats report`.
+- 22 unit tests using real, sanitized log lines.
+
 ## [0.1.0] - 2026-10-07
 ### Added
 - Project skeleton: README, MIT license, CONTRIBUTING, version plumbing, CI.
