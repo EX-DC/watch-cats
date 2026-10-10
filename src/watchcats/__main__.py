@@ -1,12 +1,17 @@
 import argparse
-import os
+import logging
 import sys
+import threading
 import time
 
 from . import __version__, presentation
 from .domains import DomainMap
+from .api import make_server, parse_allow
 from .ingest import Ingestor
+from .live import LiveWindow
+from .runtime import Collector, Hub
 from .storage import Storage
+from .sysmetrics import DirSizer, SystemSampler
 
 
 def _mb(n):
@@ -23,6 +28,28 @@ def cmd_ingest(a):
         if a.once:
             return 0
         time.sleep(a.interval)
+
+
+def cmd_serve(a):
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    allow = parse_allow(a.allow)
+    domains = DomainMap.load(a.domains) if a.domains else DomainMap()
+    hub, live = Hub(), LiveWindow(window=a.window)
+    sizer = DirSizer(a.cache_dir) if a.cache_dir else None
+
+    def make():
+        return Ingestor(Storage(a.db), a.log_dir, domains, a.tz, a.dns_log, live=live)
+
+    collector = Collector(make, SystemSampler(cache_dir=a.cache_dir), live, sizer, hub, a.interval, a.retention_days)
+    threading.Thread(target=collector.run, daemon=True, name="collector").start()
+    server = make_server(a.host, a.port, hub, a.db, allow)
+    print("Watch Cats %s: http://%s:%d/api/live  (allowed: %s)" % (
+        __version__, a.host, server.server_address[1], a.allow))
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print("bye")
+    return 0
 
 
 def cmd_report(a):
@@ -60,6 +87,20 @@ def main(argv=None):
     i.add_argument("--once", action="store_true")
     i.add_argument("--interval", type=float, default=1.0)
     i.set_defaults(fn=cmd_ingest)
+    v = sub.add_parser("serve", help="run the live API")
+    v.add_argument("--log-dir", required=True)
+    v.add_argument("--db", default="watchcats.db")
+    v.add_argument("--domains")
+    v.add_argument("--dns-log")
+    v.add_argument("--tz", default="local")
+    v.add_argument("--cache-dir", help="LanCache cache folder (for disk usage and size)")
+    v.add_argument("--host", default="0.0.0.0")
+    v.add_argument("--port", type=int, default=8088)
+    v.add_argument("--allow", default="private", help="private (default), any, or CIDRs: 192.168.1.0/24,10.0.0.0/8")
+    v.add_argument("--interval", type=float, default=1.0)
+    v.add_argument("--window", type=int, default=10, help="seconds used to smooth live speeds")
+    v.add_argument("--retention-days", type=int, default=30)
+    v.set_defaults(fn=cmd_serve)
     r = sub.add_parser("report", help="print a summary from the database")
     r.add_argument("--db", default="watchcats.db")
     r.add_argument("--hours", type=int, default=24 * 365, help="how far back to look (default: everything)")

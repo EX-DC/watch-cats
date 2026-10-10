@@ -9,8 +9,9 @@ from .tailer import Tailer
 
 
 class Ingestor:
-    def __init__(self, storage, log_dir, domains=None, tz="local", dns_log=None):
+    def __init__(self, storage, log_dir, domains=None, tz="local", dns_log=None, live=None):
         self.storage = storage
+        self.live = live
         self.domains = domains or DomainMap()
         self.tz = parse_tz(tz) if isinstance(tz, str) else tz
         paths = {"access": os.path.join(log_dir, "access.log"),
@@ -39,6 +40,8 @@ class Ingestor:
                     cell = traffic[(e.ts // 60 * 60, e.service, e.ip, e.cache, ok)]
                     cell[0] += 1
                     cell[1] += e.bytes
+                    if self.live is not None and ok:
+                        self.live.add(e.ts, e.service, e.ip, e.cache, e.bytes)
                     found = dev.detect(e.ua)
                     cand = (found[0], found[1], found[2]) if found else ("unknown", "Unknown", 0.0)
                     old = devs.get(e.ip)
