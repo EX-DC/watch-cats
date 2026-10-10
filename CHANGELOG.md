@@ -6,6 +6,20 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-08
+### Added
+- `python -m watchcats serve`: live, read-only API with a 1 second refresh.
+  - `GET /api/live` (snapshot), `GET /api/stream` (Server-Sent Events), `GET /api/summary?hours=N`, `GET /api/errors?kind=...`, `GET /api/version`, `GET /api/health`.
+- Server metrics read from `/proc` and `/sys`: CPU, RAM, network speed (rx/tx and link speed), disk usage and disk I/O, cache folder size (refreshed in the background).
+- Live per-service and per-client speeds from a 10 second sliding window (estimates, because nginx logs a request when it finishes).
+- Xbox traffic is split between console and Windows when the device type is known.
+- Access control: only private networks are accepted by default (`--allow private|any|CIDR,...`). There is no login yet.
+- Old data is purged automatically (default 30 days).
+
+### Changed
+- `Storage` can be opened read-only for the API (`init=False`).
+- Cache folder size is `null` (with `cache_unreadable` > 0) when some files cannot be read, instead of a misleading partial number.
+
 ## [0.2.0] - 2026-10-08
 ### Added
 - Log parsers for LanCache `access.log`, `stream-access.log`, `error.log` and BIND `default.log` (request paths and tokens are never stored).

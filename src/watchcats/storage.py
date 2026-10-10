@@ -19,13 +19,15 @@ CREATE INDEX IF NOT EXISTS errors_ts ON errors(ts);
 
 
 class Storage:
-    def __init__(self, path):
+    def __init__(self, path, init=True):
+        """init=False: open an existing database for reading (no schema work)."""
         self.conn = sqlite3.connect(path)
-        self.conn.execute("PRAGMA journal_mode=WAL")
-        self.conn.execute("PRAGMA synchronous=NORMAL")
-        self.conn.executescript(SCHEMA)
-        with self.conn:
-            self.conn.execute("INSERT OR IGNORE INTO meta VALUES('schema_version', ?)", (str(SCHEMA_VERSION),))
+        if init:
+            self.conn.execute("PRAGMA journal_mode=WAL")
+            self.conn.execute("PRAGMA synchronous=NORMAL")
+            self.conn.executescript(SCHEMA)
+            with self.conn:
+                self.conn.execute("INSERT OR IGNORE INTO meta VALUES('schema_version', ?)", (str(SCHEMA_VERSION),))
 
     def close(self):
         self.conn.close()
@@ -78,6 +80,15 @@ class Storage:
              "SUM(CASE WHEN ok=0 THEN requests ELSE 0 END) "
              "FROM traffic WHERE minute>=? GROUP BY service ORDER BY hb+mb DESC")
         return [dict(zip(("service", "hit_bytes", "miss_bytes", "hit_requests", "miss_requests", "failed_requests"), r))
+                for r in self.conn.execute(q, (since,))]
+
+    def service_ip_totals(self, since):
+        q = ("SELECT service, ip,"
+             "SUM(CASE WHEN cache='HIT' AND ok=1 THEN bytes ELSE 0 END),"
+             "SUM(CASE WHEN cache='MISS' AND ok=1 THEN bytes ELSE 0 END),"
+             "SUM(CASE WHEN ok=0 THEN requests ELSE 0 END) "
+             "FROM traffic WHERE minute>=? GROUP BY service, ip")
+        return [dict(zip(("service", "ip", "hit_bytes", "miss_bytes", "failed_requests"), r))
                 for r in self.conn.execute(q, (since,))]
 
     def hourly(self, since):
