@@ -6,6 +6,19 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-10
+### Added
+- Web dashboard served by the app itself at `/` (dark, Persian right-to-left, no build step, no external resources).
+  - Live gauges (5 second average plus the instant value), clients receiving from the cache, per-service cards with fill/serve bars, server resources, KPIs, 24-hour chart, 60-second chart, clients table and clickable error logs.
+- Each client row shows its main service (`top_service` in `/api/summary`).
+- The server's own addresses are hidden from clients and live data (`--show-server-ip` to keep them).
+- Security headers on pages (Content-Security-Policy, nosniff) and a whitelist of served files.
+- Front-end unit tests (Node.js `node --test`) and a CI step that runs them.
+
+### Notes
+- Alerts shown in the page are real (disk 90%, connection, log reading); DNS, container and Telegram alerts arrive in 0.5.0.
+- The 60-second chart fills from the moment the page is opened.
+
 ## [0.3.0] - 2026-10-08
 ### Added
 - `python -m watchcats serve`: live, read-only API with a 1 second refresh.

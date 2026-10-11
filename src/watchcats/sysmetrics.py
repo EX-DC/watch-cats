@@ -6,6 +6,23 @@ import time
 _SKIP_BLOCK = ("loop", "ram", "zram", "dm-", "md", "sr")
 
 
+def local_ips(proc="/proc"):
+    """IPv4 addresses that belong to this machine (so the dashboard can hide the server itself)."""
+    ips = {"127.0.0.1"}
+    try:
+        last = None
+        with open(os.path.join(proc, "net", "fib_trie"), encoding="utf-8", errors="replace") as f:
+            for line in f:
+                t = line.strip()
+                if t.startswith("|--"):
+                    last = t[3:].strip()
+                elif t == "/32 host LOCAL" and last:
+                    ips.add(last)
+    except OSError:
+        pass
+    return ips
+
+
 class SystemSampler:
     """Call sample() about once a second; rates are computed against the previous call."""
 

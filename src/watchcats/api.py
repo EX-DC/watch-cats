@@ -3,11 +3,21 @@ import ipaddress
 import json
 import time
 from collections import defaultdict
+from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
 from . import __version__, presentation
 from .storage import Storage
+
+WEB = Path(__file__).resolve().parent / "web"
+STATIC = {  # whitelist: nothing else is ever read from disk
+    "/": ("index.html", "text/html; charset=utf-8"),
+    "/static/style.css": ("style.css", "text/css; charset=utf-8"),
+    "/static/lib.js": ("lib.js", "application/javascript; charset=utf-8"),
+    "/static/app.js": ("app.js", "application/javascript; charset=utf-8"),
+}
+CSP = "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'"
 
 PRIVATE_NETS = [ipaddress.ip_network(n) for n in (
     "127.0.0.0/8", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "::1/128", "fe80::/10", "fc00::/7")]
@@ -32,16 +42,25 @@ def is_allowed(addr, allow):
     return any(ip in n for n in allow)
 
 
-def summary(db_path, hours):
+def summary(db_path, hours, hide=frozenset()):
     st = Storage(db_path, init=False)
     try:
         since = int(time.time()) - hours * 3600
-        devices = st.devices()
+        devices = [d for d in st.devices() if d["ip"] not in hide]
         kinds = {d["ip"]: d["kind"] for d in devices}
         agg = defaultdict(lambda: [0, 0, 0])
+        top = defaultdict(lambda: defaultdict(int))
         for r in st.service_ip_totals(since):
-            a = agg[presentation.display_key(r["service"], kinds.get(r["ip"]))]
+            key = presentation.display_key(r["service"], kinds.get(r["ip"]))
+            a = agg[key]
             a[0] += r["hit_bytes"]; a[1] += r["miss_bytes"]; a[2] += r["failed_requests"]
+            top[r["ip"]][key] += r["hit_bytes"] + r["miss_bytes"]
+        clients = []
+        for c in st.clients(since):
+            if c["ip"] in hide:
+                continue
+            best = max(top[c["ip"]], key=top[c["ip"]].get) if top[c["ip"]] else None
+            clients.append(dict(c, top_service=presentation.name(best) if best else None))
         services = sorted(({"key": k, "name": presentation.name(k), "hit_bytes": v[0], "miss_bytes": v[1],
                             "failed_requests": v[2]} for k, v in agg.items()), key=lambda r: -(r["hit_bytes"] + r["miss_bytes"]))
         hit = sum(s["hit_bytes"] for s in services)
@@ -49,13 +68,13 @@ def summary(db_path, hours):
         stream = [dict(s, name=presentation.name(s["service"])) for s in st.stream_totals(since)]
         return {"hours": hours, "hit_bytes": hit, "miss_bytes": miss,
                 "hit_ratio": round(hit / (hit + miss), 3) if hit + miss else None,
-                "services": services, "hourly": st.hourly(since), "clients": st.clients(since),
+                "services": services, "hourly": st.hourly(since), "clients": clients,
                 "passthrough": stream, "errors": st.error_counts(since), "devices": devices}
     finally:
         st.close()
 
 
-def make_server(host, port, hub, db_path, allow=None):
+def make_server(host, port, hub, db_path, allow=None, hide_ips=frozenset()):
     class Handler(BaseHTTPRequestHandler):
         server_version = "WatchCats/" + __version__
 
@@ -87,7 +106,7 @@ def make_server(host, port, hub, db_path, allow=None):
                     hours = min(max(int(q.get("hours", ["24"])[0]), 1), 8760)
                 except ValueError:
                     return self._json({"error": "bad hours"}, 400)
-                return self._json(summary(db_path, hours))
+                return self._json(summary(db_path, hours, hide_ips))
             if url.path == "/api/errors":
                 kind = q.get("kind", [""])[0]
                 if not kind:
@@ -100,7 +119,24 @@ def make_server(host, port, hub, db_path, allow=None):
                     st.close()
             if url.path == "/api/stream":
                 return self._stream()
+            if url.path in STATIC:
+                return self._static(*STATIC[url.path])
             return self._json({"error": "not found"}, 404)
+
+        def _static(self, name, ctype):
+            try:
+                body = (WEB / name).read_bytes()
+            except OSError:
+                return self._json({"error": "not found"}, 404)
+            self.send_response(200)
+            self.send_header("Content-Type", ctype)
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-cache")
+            self.send_header("Content-Security-Policy", CSP)
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.send_header("Referrer-Policy", "no-referrer")
+            self.end_headers()
+            self.wfile.write(body)
 
         def _stream(self):
             self.send_response(200)

@@ -28,9 +28,10 @@ class Hub:
 
 
 class Collector:
-    def __init__(self, make_ingestor, sampler, live, sizer, hub, interval=1.0, retention_days=30):
+    def __init__(self, make_ingestor, sampler, live, sizer, hub, interval=1.0, retention_days=30, exclude_ips=frozenset()):
         self.make_ingestor, self.sampler, self.live, self.sizer = make_ingestor, sampler, live, sizer
         self.hub, self.interval, self.retention_days = hub, interval, retention_days
+        self.exclude_ips = set(exclude_ips)
         self.errors = 0
         self._last_purge = 0.0
 
@@ -39,6 +40,8 @@ class Collector:
         svc = defaultdict(lambda: {"fill": 0, "serve": 0, "sc": set(), "fc": set()})
         cli = defaultdict(lambda: {"fill": 0, "serve": 0, "svcs": set()})
         for (service, ip, cache), nbytes in self.live.totals().items():
+            if ip in self.exclude_ips:
+                continue
             key = presentation.display_key(service, kinds.get(ip, ("unknown", ""))[0])
             s, c = svc[key], cli[ip]
             c["svcs"].add(presentation.name(key))

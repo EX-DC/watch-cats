@@ -7,13 +7,13 @@
 > *Watch Cats is an independent companion dashboard for LanCache. It is not affiliated with the LanCache project or with any game store. Brand names belong to their owners.*
 
 ## وضعیت
-نسخهٔ `0.3.0` — API زنده با بروزرسانی ۱ ثانیه‌ای آماده است (بدون رابط گرافیکی). رابط در مرحلهٔ ۴ می‌آید.
+نسخهٔ `0.4.0` — رابط گرافیکی روی `http://<آی‌پی-سرور>:8088/` آماده است. هشدارهای کامل در مرحلهٔ ۵.
 
 ## نقشهٔ راه
 1. اسکلت پروژه ✅
 2. خواندن لاگ‌ها، تشخیص سرویس و دستگاه، ذخیره در SQLite ✅
 3. API زنده (بروزرسانی ۱ ثانیه‌ای) و آمار CPU / RAM / شبکه / دیسک ✅
-4. رابط گرافیکی (طبق `design/`)
+4. رابط گرافیکی (طبق `design/`) ✅
 5. هشدارها: درون صفحه، مرورگر، تلگرام (+ اعلان وقتی ترافیک Epic روی HTTPS می‌رود و کش نمی‌شود)
 6. بستهٔ Docker و compose (سه کانتینر: DNS، monolithic، داشبورد)
 7. نصب با یک خط، بروزرسانی و حذف
@@ -28,13 +28,13 @@ PYTHONPATH=src python3 -m watchcats ingest --log-dir ~/lancache/lancache/logs \
 PYTHONPATH=src python3 -m watchcats report --db watchcats.db
 ```
 
-## اجرای API زنده (نسخهٔ ۰.۳.۰)
+## اجرای داشبورد (نسخهٔ ۰.۴.۰)
 ```bash
 PYTHONPATH=src python3 -m watchcats serve --log-dir ~/lancache/lancache/logs \
   --domains ~/lancache/cache-domains --cache-dir ~/lancache/lancache/cache \
   --db watchcats.db --tz +03:30
 ```
-بعد از اجرا: `http://<آی‌پی-سرور>:8088/api/live` (داده‌های زنده) و `/api/summary?hours=24` (خلاصه).
+بعد از اجرا: داشبورد روی `http://<آی‌پی-سرور>:8088/` باز می‌شود. خود API هم در `/api/live` و `/api/summary?hours=24` در دسترس است.
 به‌صورت پیش‌فرض فقط آی‌پی‌های شبکهٔ خصوصی (مثل `192.168.x.x`) پذیرفته می‌شن و ورود با رمز هنوز وجود ندارد. پورت 8088 رو از اینترنت باز نکنید (port-forward نکنید).
 
 ## ابزار کمکی ویندوز

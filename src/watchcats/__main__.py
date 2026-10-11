@@ -11,7 +11,7 @@ from .ingest import Ingestor
 from .live import LiveWindow
 from .runtime import Collector, Hub
 from .storage import Storage
-from .sysmetrics import DirSizer, SystemSampler
+from .sysmetrics import DirSizer, SystemSampler, local_ips
 
 
 def _mb(n):
@@ -40,11 +40,12 @@ def cmd_serve(a):
     def make():
         return Ingestor(Storage(a.db), a.log_dir, domains, a.tz, a.dns_log, live=live)
 
-    collector = Collector(make, SystemSampler(cache_dir=a.cache_dir), live, sizer, hub, a.interval, a.retention_days)
+    hide = set() if a.show_server_ip else local_ips()
+    collector = Collector(make, SystemSampler(cache_dir=a.cache_dir), live, sizer, hub, a.interval, a.retention_days, hide)
     threading.Thread(target=collector.run, daemon=True, name="collector").start()
-    server = make_server(a.host, a.port, hub, a.db, allow)
-    print("Watch Cats %s: http://%s:%d/api/live  (allowed: %s)" % (
-        __version__, a.host, server.server_address[1], a.allow))
+    server = make_server(a.host, a.port, hub, a.db, allow, hide)
+    print("Watch Cats %s: open http://<server-ip>:%d/  (listening on %s, allowed: %s)" % (
+        __version__, server.server_address[1], a.host, a.allow))
     try:
         server.serve_forever()
     except KeyboardInterrupt:
@@ -100,6 +101,7 @@ def main(argv=None):
     v.add_argument("--interval", type=float, default=1.0)
     v.add_argument("--window", type=int, default=10, help="seconds used to smooth live speeds")
     v.add_argument("--retention-days", type=int, default=30)
+    v.add_argument("--show-server-ip", action="store_true", help="do not hide this server's own addresses")
     v.set_defaults(fn=cmd_serve)
     r = sub.add_parser("report", help="print a summary from the database")
     r.add_argument("--db", default="watchcats.db")
