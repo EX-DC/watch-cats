@@ -119,6 +119,16 @@ def parse_error_line(line, tz):
         kind = "upstream_timeout"
     elif (c := re.search(r"unexpected status code (\d{3}) in slice response", msg)):
         kind = "upstream_" + c[1]
+    elif "no live upstreams" in msg:
+        kind = "upstream_unavailable"
+    elif "connect() failed" in msg:
+        kind = "upstream_connect_failed"
+    elif "prematurely closed connection" in msg:
+        kind = "upstream_closed"
+    elif "recv() failed (104" in msg:
+        kind = "upstream_reset"
+    elif "SSL_" in msg or "SSL " in msg:
+        kind = "upstream_ssl"
     elif "could not be resolved" in msg:
         kind = "dns_unresolved"
         cause = re.sub(r"^\S+ could not", "host could not", cause)

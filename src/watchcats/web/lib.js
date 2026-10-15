@@ -19,7 +19,9 @@
   };
   const KIND_FA = {
     upstream_timeout: 'تایم‌اوت اتصال به سرور مبدأ', upstream_403: 'خطای 403 از سمت CDN',
-    dns_unresolved: 'خطای شناسایی دامنه در کش', dns_timed_out: 'تایم‌اوت DNS', other: 'سایر خطاها'
+    dns_unresolved: 'خطای شناسایی دامنه در کش', dns_timed_out: 'تایم‌اوت DNS', other: 'سایر خطاها',
+    upstream_unavailable: 'سرور مبدأ در دسترس نیست', upstream_connect_failed: 'اتصال به سرور مبدأ برقرار نشد',
+    upstream_closed: 'سرور مبدأ اتصال را قطع کرد', upstream_reset: 'اتصال با سرور مبدأ ریست شد', upstream_ssl: 'خطای SSL با سرور مبدأ'
   };
   const STATE_FA = { serving: 'در حال سرو', filling: 'در حال ذخیره', idle: 'بی‌کار' };
 
@@ -89,6 +91,22 @@
     if (d < 86400) return Math.round(d / 3600) + ' ساعت پیش';
     return Math.round(d / 86400) + ' روز پیش';
   }
+  const pad2 = (n) => String(n).padStart(2, '0');
+  function fmtDateTime(ts) {
+    const d = new Date(ts * 1000);
+    return ltr(d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes()));
+  }
+  const fmtClock = (ts) => { const d = new Date(ts * 1000); return ltr(pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds())); };
+  const LIVE_SECONDS = 120; // log times are per minute, so "live" means seen within the last ~2 minutes
+  function lastSeenHtml(ts, nowSec) {
+    if (nowSec - ts < LIVE_SECONDS) return '<span class="live"><i class="live-dot"></i>live</span>';
+    return '<span class="stack"><span>' + esc(relTime(ts, nowSec)) + '</span><small class="muted">' + fmtDateTime(ts) + '</small></span>';
+  }
+  function kindName(kind) {
+    if (KIND_FA[kind]) return KIND_FA[kind];
+    const m = /^upstream_(\d{3})$/.exec(kind);
+    return m ? 'خطای ' + m[1] + ' از سمت سرور مبدأ' : kind;
+  }
   function alertsFor(live, connected) {
     const out = [];
     out.push(connected ? { s: 'سالم', c: 'ok', n: 'اتصال زنده', d: 'هر ۱ ثانیه' }
@@ -126,15 +144,18 @@
   }
   function clientsLiveHtml(live) {
     const act = ((live && live.live.clients) || []).filter((c) => c.serve_mbps > 0 || c.fill_mbps > 0);
-    const n = act.length;
-    const head = '<h2>' + (n > 0 ? n + ' سیستم در حال دریافت از کش' : 'هیچ سیستمی در حال دریافت از کش نیست') + '</h2>';
+    const nServe = act.filter((c) => c.serve_mbps > 0).length;
+    const nFill = act.filter((c) => c.fill_mbps > 0 && !(c.serve_mbps > 0)).length;
+    const head = '<h2>' + (act.length ? act.length + ' سیستم در حال دریافت' : 'هیچ سیستمی در حال دریافت نیست') + '</h2>' +
+      (act.length ? '<p class="muted">' + nServe + ' سیستم از کش · ' + nFill + ' سیستم در حال دانلود از اینترنت (و ذخیره)</p>' : '');
     const cards = act.slice(0, 6).map((c) => {
-      const svcKey = Object.keys(BRAND).find((k) => (live.live.services || []).some((s) => s.key === k && c.services.indexOf(s.name) >= 0));
+      const svc = ((live.live && live.live.services) || []).find((s) => c.services.indexOf(s.name) >= 0);
       const d = devInfo(c.kind);
+      const speeds = (c.serve_mbps > 0 ? '<strong class="speed green">' + esc(fmtMbps(c.serve_mbps)) + '</strong><small class="green">از کش</small>' : '') +
+        (c.fill_mbps > 0 ? '<strong class="speed amber">' + esc(fmtMbps(c.fill_mbps)) + '</strong><small class="amber">از اینترنت</small>' : '');
       return '<div class="cl"><div class="cl-main"><div class="row">' + devBadge(c.kind) + '<b>' + esc(d[2]) + '</b></div>' +
         '<small class="muted"><bdi>' + esc(c.ip) + '</bdi></small></div><div class="cl-side">' +
-        svcBadge(svcKey, 'big') + '<span>' + esc(c.services.join('، ')) + '</span>' +
-        '<strong class="speed">' + esc(fmtMbps(c.serve_mbps + c.fill_mbps)) + '</strong></div></div>';
+        svcBadge(svc ? svc.key : null, 'big') + '<span>' + esc(c.services.join('، ')) + '</span>' + speeds + '</div></div>';
     }).join('');
     return head + '<div class="grid3">' + cards + '</div>';
   }
@@ -172,36 +193,56 @@
       t('کارت شبکه', '↑ ' + fmtMbps(n.tx_mbps) + ' · ↓ ' + fmtMbps(n.rx_mbps), Math.max(n.tx_mbps, n.rx_mbps) / (n.link_mbps || 1000) * 100, '#3ddc97', 'ارسال به کلاینت‌ها · دریافت از اینترنت · ' + (n.iface || '')) +
       t('دیسک', d.pct + '٪ پر', d.pct, '#f5a524', 'خواندن ' + ltr(d.read_mb_s + ' MB/s') + ' · نوشتن ' + ltr(d.write_mb_s + ' MB/s'));
   }
-  function chartHtml(o) {
-    const ticks = o.yTicks.map((t) => '<span>' + esc(t) + '</span>').join('');
-    const bars = o.bars.map((b) => '<div class="bar" title="' + esc(b.title || '') + '"><i class="m" style="height:' + (b.m / o.yMax * 100) +
-      '%"></i><i class="h" style="height:' + (b.h / o.yMax * 100) + '%"></i></div>').join('');
+  const linScale = (yMax) => (v) => v / yMax;
+  const logScale = (minV, yMax) => (v) => (v <= minV ? 0 : Math.log10(v / minV) / Math.log10(yMax / minV));
+  /* bars = MISS (amber columns), line = HIT (green line); both on the same axis, never stacked */
+  function comboChart(o) {
+    const n = o.line.length, pct = (v) => (v == null ? 0 : Math.max(0, Math.min(1, o.scale(v))) * 100), x = (i) => (((i + 0.5) / n) * 100).toFixed(2);
+    const grid = o.ticks.map((t) => '<div class="gl" style="bottom:' + (t.p * 100) + '%"></div>').join('');
+    const yl = o.ticks.map((t) => '<span style="bottom:' + (t.p * 100) + '%">' + esc(t.l) + '</span>').join('');
+    const bars = o.bars.map((v, i) => '<div class="slot" title="' + esc(o.titles[i] || '') + '"><i class="bar-m" style="height:' + pct(v) + '%"></i></div>').join('');
+    const pts = o.line.map((v, i) => (v == null ? null : x(i) + ',' + (100 - pct(v)).toFixed(2))).filter(Boolean).join(' ');
+    const dots = o.dots ? o.line.map((v, i) => (v > 0 ? '<b class="pt" style="left:' + x(i) + '%;bottom:' + pct(v) + '%"></b>' : '')).join('') : '';
     const xs = o.xLabels.map((t) => '<span>' + esc(t) + '</span>').join('');
-    return '<div class="chart" dir="ltr"><div class="yaxis">' + ticks + '</div><div class="plot-wrap"><div class="plot">' + bars +
-      '</div><div class="xaxis">' + xs + '</div></div></div><p class="muted center">' + esc(o.caption) + '</p>' +
-      '<div class="legend">' + o.legend + '</div>';
+    return '<div class="chart" dir="ltr"><div class="yaxis">' + yl + '</div><div class="plot-wrap"><div class="plot">' + grid +
+      '<div class="slots">' + bars + '</div><svg class="overlay" viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points="' + pts +
+      '" fill="none" stroke="#3ddc97" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>' + dots +
+      '</div><div class="xaxis">' + xs + '</div></div></div><p class="muted center">' + esc(o.caption) + '</p><div class="legend">' + o.legend + '</div>';
   }
-  const LEG1 = '<span><b class="green">■ سبز · HIT</b> — از حافظهٔ کش سرو شد</span><span><b class="amber">■ نارنجی · MISS</b> — از اینترنت گرفته و ذخیره شد</span>';
-  const LEG2 = '<span><b class="green">■ سرو از کش</b></span><span><b class="amber">■ دانلود و ذخیره</b></span>';
-  function chart24Html(summary, nowSec) {
+  const LEG = '<span><b class="green">━ خط سبز · HIT</b> — از حافظهٔ کش سرو شد</span><span><b class="amber">▮ ستون نارنجی · MISS</b> — از اینترنت گرفته و ذخیره شد</span>';
+  function chart24Html(summary, nowSec, mode) {
     const bars = hourlyBars(summary && summary.hourly, nowSec, 24);
-    const yMax = niceMax(Math.max.apply(null, bars.map((b) => b.hit + b.miss).concat([1])));
-    const lab = (h) => { const d = new Date(h * 1000); return String(d.getHours()).padStart(2, '0') + ':00'; };
-    const unit = yMax >= 1e9 ? [1e9, 'GB'] : [1e6, 'MB'];
-    return chartHtml({
-      bars: bars.map((b) => ({ h: b.hit, m: b.miss, title: lab(b.hour) + ' · HIT ' + fmtBytes(b.hit) + ' · MISS ' + fmtBytes(b.miss) })),
-      yMax: yMax, yTicks: [1, .75, .5, .25, 0].map((f) => +(yMax * f / unit[0]).toFixed(2) + ' ' + unit[1]),
+    const maxV = Math.max.apply(null, bars.map((b) => Math.max(b.hit, b.miss)).concat([1]));
+    const lab = (h) => { const d = new Date(h * 1000); return pad2(d.getHours()) + ':00'; };
+    let scale, ticks;
+    if (mode === 'log') {
+      const minV = 1e6, K = Math.max(1, Math.ceil(Math.log10(Math.max(maxV, 2e6) / minV))), yMax = minV * Math.pow(10, K);
+      scale = logScale(minV, yMax);
+      ticks = Array.from({ length: K + 1 }, (_, k) => ({ p: k / K, l: fmtBytes(minV * Math.pow(10, k)) }));
+    } else {
+      const yMax = niceMax(maxV);
+      scale = linScale(yMax);
+      ticks = [0, 0.25, 0.5, 0.75, 1].map((p) => ({ p: p, l: p === 0 ? '0' : fmtBytes(yMax * p) }));
+    }
+    return comboChart({
+      bars: bars.map((b) => b.miss), line: bars.map((b) => b.hit), scale: scale, ticks: ticks, dots: true,
+      titles: bars.map((b) => lab(b.hour) + ' · HIT ' + fmtBytes(b.hit) + ' · MISS ' + fmtBytes(b.miss)),
       xLabels: [0, 6, 12, 18, 23].map((i) => lab(bars[i].hour)),
-      caption: 'محور عمودی: حجم ترافیک هر ساعت · محور افقی: ساعت (ساعت محلی مرورگر)', legend: LEG1
+      caption: mode === 'log' ? 'مقیاس لگاریتمی: مقدارهای کوچک هم دیده می‌شوند · محور افقی: ساعت (ساعت محلی مرورگر)' : 'مقیاس خطی · محور عمودی: حجم ترافیک هر ساعت · محور افقی: ساعت (ساعت محلی مرورگر)',
+      legend: LEG
     });
   }
-  function chart60Html(hist, max) {
-    const pad = Math.max(0, 60 - hist.length), s = hist.slice(-60);
-    const bars = Array.from({ length: pad }, () => ({ h: 0, m: 0 })).concat(s.map((x) => ({ h: x.serve, m: x.fill, title: Math.round(x.serve) + ' / ' + Math.round(x.fill) + ' Mbps' })));
-    return chartHtml({
-      bars: bars, yMax: max, yTicks: [1, .75, .5, .25, 0].map((f) => Math.round(max * f)),
+  function chart60Html(hist) {
+    const s = hist.slice(-60), pad = 60 - s.length;
+    const zeros = Array.from({ length: pad }, () => 0), nulls = Array.from({ length: pad }, () => null);
+    const maxV = Math.max.apply(null, s.map((x) => Math.max(x.serve, x.fill)).concat([100]));
+    const yMax = niceMax(maxV);
+    return comboChart({
+      bars: zeros.concat(s.map((x) => x.fill)), line: nulls.concat(s.map((x) => x.serve)), scale: linScale(yMax), dots: false,
+      ticks: [0, 0.25, 0.5, 0.75, 1].map((p) => ({ p: p, l: String(Math.round(yMax * p)) })),
+      titles: zeros.map(() => '').concat(s.map((x) => Math.round(x.serve) + ' Mbps از کش · ' + Math.round(x.fill) + ' Mbps از اینترنت')),
       xLabels: ['۶۰ ثانیه پیش', '۴۰', '۲۰', 'اکنون'],
-      caption: 'محور عمودی: سرعت (Mbps) · محور افقی: زمان از لحظهٔ باز شدن این صفحه', legend: LEG2
+      caption: 'محور عمودی: سرعت (Mbps) · محور افقی: زمان از لحظهٔ باز شدن این صفحه · هر ستون یک ثانیه', legend: LEG
     });
   }
   function tableHtml(summary, nowSec) {
@@ -210,19 +251,19 @@
     return '<div class="trow thead"><span>آی‌پی</span><span>دستگاه (خودکار)</span><span>سرویس اصلی</span><span>HIT</span><span>MISS</span><span>آخرین فعالیت</span></div>' +
       rows.slice(0, 15).map((r) => '<div class="trow"><span><bdi>' + esc(r.ip) + '</bdi></span><span class="row">' + devBadge(r.kind, 'sm') + esc(devInfo(r.kind)[2]) +
         '</span><span>' + esc(r.top_service || '—') + '</span><span class="green">' + esc(fmtBytes(r.hit_bytes)) + '</span><span class="amber">' + esc(fmtBytes(r.miss_bytes)) +
-        '</span><span class="muted">' + esc(relTime(r.last_seen, nowSec)) + '</span></div>').join('');
+        '</span>' + lastSeenHtml(r.last_seen, nowSec).replace(/^<span class="live">/, '<span class="live">') + '</div>').join('');
   }
   function errorsHtml(groups, open, lines, nowSec) {
     if (!groups.length) return '<p class="muted">در ۲۴ ساعت اخیر خطایی ثبت نشده است. ✔</p>';
     return groups.map((g) => {
       const isOpen = open === g.kind;
       const body = isOpen ? '<div class="logbox" dir="ltr">' + ((lines && lines.length) ? lines.map((l) =>
-        '<div>' + esc(new Date(l.ts * 1000).toLocaleString()) + ' · ' + esc(l.ip || '-') + ' · ' + esc(l.host || '-') + ' · ' + esc(l.detail) + '</div>').join('') :
+        '<div>' + fmtDateTime(l.ts) + ' · ' + esc(l.ip || '-') + ' · ' + esc(l.host || '-') + ' · ' + esc(l.detail) + '</div>').join('') :
         '<div>در حال بارگذاری…</div>') + '</div>' : '';
-      return '<div class="err"><button type="button" class="errbtn" data-kind="' + esc(g.kind) + '"><span><b>' + esc(KIND_FA[g.kind] || g.kind) +
-        '</b> · <bdi>' + esc(g.topHosts.join('، ')) + '</bdi></span><span>' + esc(g.count) + ' مورد · آخرین: ' + esc(relTime(g.last, nowSec)) + ' ' + (isOpen ? '▲' : '▼') + '</span></button>' + body + '</div>';
+      return '<div class="err"><button type="button" class="errbtn" data-kind="' + esc(g.kind) + '"><span><b>' + esc(kindName(g.kind)) +
+        '</b> · <bdi>' + esc(g.topHosts.join('، ')) + '</bdi></span><span>' + esc(g.count) + ' مورد · آخرین: ' + esc(relTime(g.last, nowSec)) + ' · ' + fmtDateTime(g.last) + ' ' + (isOpen ? '▲' : '▼') + '</span></button>' + body + '</div>';
     }).join('');
   }
-  return { ltr, esc, fmtBytes, fmtMbps, avg, niceMax, hourlyBars, serviceRows, serviceState, errorGroups, relTime, alertsFor,
+  return { ltr, esc, fmtBytes, fmtMbps, fmtDateTime, fmtClock, lastSeenHtml, kindName, linScale, logScale, avg, niceMax, hourlyBars, serviceRows, serviceState, errorGroups, relTime, alertsFor,
     alertsHtml, gaugeHtml, clientsLiveHtml, serviceCardsHtml, kpisHtml, hwHtml, chart24Html, chart60Html, tableHtml, errorsHtml, BRAND, DEVICE };
 });

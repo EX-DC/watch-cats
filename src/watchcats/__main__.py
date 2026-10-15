@@ -4,7 +4,7 @@ import sys
 import threading
 import time
 
-from . import __version__, presentation
+from . import __version__, fonts, presentation
 from .domains import DomainMap
 from .api import make_server, parse_allow
 from .ingest import Ingestor
@@ -50,6 +50,16 @@ def cmd_serve(a):
         server.serve_forever()
     except KeyboardInterrupt:
         print("bye")
+    return 0
+
+
+def cmd_install_font(a):
+    try:
+        n = fonts.install(a.url, a.dest) if a.url else fonts.install()
+    except Exception as e:  # network errors, bad file, ...
+        print("could not install the font: %s" % e, file=sys.stderr)
+        return 1
+    print("font installed (%d bytes). Reload the dashboard page." % n)
     return 0
 
 
@@ -103,6 +113,10 @@ def main(argv=None):
     v.add_argument("--retention-days", type=int, default=30)
     v.add_argument("--show-server-ip", action="store_true", help="do not hide this server's own addresses")
     v.set_defaults(fn=cmd_serve)
+    f = sub.add_parser("install-font", help="download the Vazirmatn Persian font for the dashboard (optional)")
+    f.add_argument("--url")
+    f.add_argument("--dest", default=str(fonts.DEST))
+    f.set_defaults(fn=cmd_install_font)
     r = sub.add_parser("report", help="print a summary from the database")
     r.add_argument("--db", default="watchcats.db")
     r.add_argument("--hours", type=int, default=24 * 365, help="how far back to look (default: everything)")
