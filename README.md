@@ -7,7 +7,7 @@
 > *Watch Cats is an independent companion dashboard for LanCache. It is not affiliated with the LanCache project or with any game store. Brand names belong to their owners.*
 
 ## وضعیت
-نسخهٔ `0.4.0` — رابط گرافیکی روی `http://<آی‌پی-سرور>:8088/` آماده است. هشدارهای کامل در مرحلهٔ ۵.
+نسخهٔ `0.4.1` — رابط گرافیکی روی `http://<آی‌پی-سرور>:8088/` آماده است. هشدارهای کامل در مرحلهٔ ۵.
 
 ## نقشهٔ راه
 1. اسکلت پروژه ✅
@@ -36,6 +36,13 @@ PYTHONPATH=src python3 -m watchcats serve --log-dir ~/lancache/lancache/logs \
 ```
 بعد از اجرا: داشبورد روی `http://<آی‌پی-سرور>:8088/` باز می‌شود. خود API هم در `/api/live` و `/api/summary?hours=24` در دسترس است.
 به‌صورت پیش‌فرض فقط آی‌پی‌های شبکهٔ خصوصی (مثل `192.168.x.x`) پذیرفته می‌شن و ورود با رمز هنوز وجود ندارد. پورت 8088 رو از اینترنت باز نکنید (port-forward نکنید).
+
+## فونت فارسی (اختیاری)
+برای اینکه متن فارسی روی همهٔ کامپیوترها یک‌شکل دیده شود، فونت وزیرمتن را یک‌بار دانلود کنید (نیاز به اینترنت روی سرور):
+```bash
+PYTHONPATH=src python3 -m watchcats install-font
+```
+بعد صفحهٔ داشبورد را رفرش کنید. فایل فونت داخل git ذخیره نمی‌شود.
 
 ## ابزار کمکی ویندوز
 `tools/windows/epic-http-fix.ps1` — برای هر کامپیوتر ویندوزی یک‌بار اجرا شود تا Epic از HTTP دانلود کند و LanCache بتواند کشش کند.

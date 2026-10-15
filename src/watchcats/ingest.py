@@ -43,6 +43,10 @@ class Ingestor:
                     if self.live is not None and ok:
                         self.live.add(e.ts, e.service, e.ip, e.cache, e.bytes)
                     found = dev.detect(e.ua)
+                    if not found and e.service == "xboxlive":
+                        # heuristic (unverified): Windows PCs are recognised by their User-Agent, so an
+                        # unrecognised client that downloads from the Xbox CDN list is most likely a console
+                        found = ("xbox_console", "Xbox", 0.5)
                     cand = (found[0], found[1], found[2]) if found else ("unknown", "Unknown", 0.0)
                     old = devs.get(e.ip)
                     if old is None or cand[2] > old[2]:

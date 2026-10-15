@@ -6,6 +6,24 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-10-13
+### Fixed
+- HIT/MISS gauges: a first download from the internet no longer shows up as "served from cache". A cache MISS is proxied (it is counted in both the NIC's rx and tx), so the cache-serve speed is now `tx - rx` and the download speed is `rx`.
+- Error buttons were drawn with black text on a dark background and are readable now.
+- Numbers with units are displayed in the right order inside right-to-left text.
+- "Clients receiving" now counts every active client and says whether each one is served from the cache or downloading from the internet (amber).
+- The 60-second chart no longer draws a line before the page was opened.
+
+### Changed
+- Both charts show MISS as amber columns and HIT as a green line on the same axis (they are no longer stacked). The 24-hour chart has a linear/logarithmic switch so small hours stay visible.
+- Clients table: "live" with a blinking green dot for recent activity, and a relative time plus date and clock for older activity. Error groups show date and clock too.
+- Lighter font weights and a better Persian font stack.
+
+### Added
+- `python -m watchcats install-font` downloads the Vazirmatn font (optional, not stored in git).
+- More error kinds (`upstream_unavailable`, `upstream_connect_failed`, `upstream_closed`, `upstream_reset`, `upstream_ssl`) and readable names for `upstream_<status>`.
+- Heuristic (unverified): an unrecognised client that downloads from the Xbox CDN list is shown as an Xbox console.
+
 ## [0.4.0] - 2026-10-10
 ### Added
 - Web dashboard served by the app itself at `/` (dark, Persian right-to-left, no build step, no external resources).

@@ -58,11 +58,15 @@ class Collector:
                            "fill_mbps": m(v["fill"]), "services": sorted(v["svcs"])} for ip, v in cli.items()),
                          key=lambda r: -(r["serve_mbps"] + r["fill_mbps"]))
         system = self.sampler.sample()
+        # A cache MISS is proxied: the bytes come in from the internet (rx) and go out to the client (tx).
+        # A HIT only goes out (tx). So rx = data fetched from the internet, tx - rx = data served from the cache.
+        fill = system["net"]["rx_mbps"]
+        serve = max(0.0, system["net"]["tx_mbps"] - system["net"]["rx_mbps"])
         system["disk"]["cache_bytes"] = self.sizer.get() if self.sizer else None
         system["disk"]["cache_unreadable"] = self.sizer.unreadable if self.sizer else 0
         return {"ts": int(time.time()), "version": __version__, "window_s": self.live.window,
                 "system": system, "collector_errors": self.errors,
-                "live": {"serve_mbps": system["net"]["tx_mbps"], "fill_mbps": system["net"]["rx_mbps"],
+                "live": {"serve_mbps": round(serve, 1), "fill_mbps": round(fill, 1),
                          "serving_clients": sum(1 for c in clients if c["serve_mbps"] > 0),
                          "services": services, "clients": clients}}
 

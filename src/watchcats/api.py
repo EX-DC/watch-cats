@@ -16,7 +16,18 @@ STATIC = {  # whitelist: nothing else is ever read from disk
     "/static/style.css": ("style.css", "text/css; charset=utf-8"),
     "/static/lib.js": ("lib.js", "application/javascript; charset=utf-8"),
     "/static/app.js": ("app.js", "application/javascript; charset=utf-8"),
+    "/static/fonts/Vazirmatn.woff2": ("fonts/Vazirmatn.woff2", "font/woff2"),  # optional, see `install-font`
 }
+FONT_FACE = ('@font-face{font-family:"Vazirmatn";src:url(/static/fonts/Vazirmatn.woff2) format("woff2");'
+             'font-weight:100 900;font-display:swap}\n')
+
+
+def style_css(web=WEB):
+    """style.css, plus the @font-face rule only when the optional font file is installed."""
+    css = (web / "style.css").read_text(encoding="utf-8")
+    return (FONT_FACE if (web / "fonts" / "Vazirmatn.woff2").exists() else "") + css
+
+
 CSP = "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'"
 
 PRIVATE_NETS = [ipaddress.ip_network(n) for n in (
@@ -125,7 +136,7 @@ def make_server(host, port, hub, db_path, allow=None, hide_ips=frozenset()):
 
         def _static(self, name, ctype):
             try:
-                body = (WEB / name).read_bytes()
+                body = style_css().encode("utf-8") if name == "style.css" else (WEB / name).read_bytes()
             except OSError:
                 return self._json({"error": "not found"}, 404)
             self.send_response(200)

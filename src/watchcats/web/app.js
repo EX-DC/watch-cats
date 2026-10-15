@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-  const S = { live: null, summary: null, hist: [], connected: false, open: null, lines: [] };
+  const S = { live: null, summary: null, hist: [], connected: false, open: null, lines: [], scale: 'lin' };
   const $ = (id) => document.getElementById(id);
   const now = () => Math.floor(Date.now() / 1000);
 
@@ -10,18 +10,18 @@
     if (!l) return;
     const max = l.system.net.link_mbps || 1000;
     $('gauges').innerHTML =
-      WC.gaugeHtml({ title: 'سرعت سرو از کش (HIT)', value: WC.avg(S.hist, 'serve', 5), instant: l.live.serve_mbps, max: max, color: '#3ddc97', sub: 'ارسال کارت شبکه به کلاینت‌ها · میانگین ۵ ثانیه' }) +
-      WC.gaugeHtml({ title: 'سرعت دانلود از اینترنت و ذخیره (MISS)', value: WC.avg(S.hist, 'fill', 5), instant: l.live.fill_mbps, max: max, color: '#f5a524', sub: 'دریافت کارت شبکه از اینترنت · میانگین ۵ ثانیه' });
+      WC.gaugeHtml({ title: 'سرعت سرو از کش (HIT)', value: WC.avg(S.hist, 'serve', 5), instant: l.live.serve_mbps, max: max, color: '#3ddc97', sub: 'ارسال به کلاینت‌ها منهای دانلود از اینترنت · میانگین ۵ ثانیه' }) +
+      WC.gaugeHtml({ title: 'سرعت دانلود از اینترنت (MISS)', value: WC.avg(S.hist, 'fill', 5), instant: l.live.fill_mbps, max: max, color: '#f5a524', sub: 'دریافت از اینترنت و ذخیره (شامل HTTPS عبوری) · میانگین ۵ ثانیه' });
     $('clients-live').innerHTML = WC.clientsLiveHtml(l);
     $('hw').innerHTML = WC.hwHtml(l);
     $('services').innerHTML = WC.serviceCardsHtml(WC.serviceRows(l, S.summary), max);
     $('kpis').innerHTML = WC.kpisHtml(l, S.summary);
-    $('chart60').innerHTML = WC.chart60Html(S.hist, max);
+    $('chart60').innerHTML = WC.chart60Html(S.hist);
     $('ver').textContent = 'v' + l.version;
-    $('sub').textContent = 'سرور ' + location.hostname + ' · بروزرسانی ' + new Date(l.ts * 1000).toLocaleTimeString();
+    $('sub').innerHTML = 'سرور <bdi>' + WC.esc(location.hostname) + '</bdi> · بروزرسانی ' + WC.fmtClock(l.ts);
   }
   function renderSummary() {
-    $('chart24').innerHTML = WC.chart24Html(S.summary, now());
+    $('chart24').innerHTML = WC.chart24Html(S.summary, now(), S.scale);
     $('table').innerHTML = WC.tableHtml(S.summary, now());
     renderErrors();
     renderLive();
@@ -56,6 +56,13 @@
         if (S.open === kind) { S.lines = d.items; renderErrors(); }
       }).catch(() => {});
     }
+  });
+  $('scale-seg').addEventListener('click', (ev) => {
+    const b = ev.target.closest('button');
+    if (!b) return;
+    S.scale = b.getAttribute('data-scale');
+    Array.prototype.forEach.call($('scale-seg').querySelectorAll('button'), (x) => x.classList.toggle('on', x === b));
+    $('chart24').innerHTML = WC.chart24Html(S.summary, now(), S.scale);
   });
   renderLive();
   loadSummary();
