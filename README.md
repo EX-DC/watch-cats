@@ -7,7 +7,7 @@
 > *Watch Cats is an independent companion dashboard for LanCache. It is not affiliated with the LanCache project or with any game store. Brand names belong to their owners.*
 
 ## وضعیت
-نسخهٔ `0.4.1` — رابط گرافیکی روی `http://<آی‌پی-سرور>:8088/` آماده است. هشدارهای کامل در مرحلهٔ ۵.
+نسخهٔ `0.4.2` — رابط گرافیکی روی `http://<آی‌پی-سرور>:8088/` آماده است. هشدارهای کامل در مرحلهٔ ۵.
 
 ## نقشهٔ راه
 1. اسکلت پروژه ✅
@@ -43,6 +43,17 @@ PYTHONPATH=src python3 -m watchcats serve --log-dir ~/lancache/lancache/logs \
 PYTHONPATH=src python3 -m watchcats install-font
 ```
 بعد صفحهٔ داشبورد را رفرش کنید. فایل فونت داخل git ذخیره نمی‌شود.
+
+## لوگوی سرویس‌ها (اختیاری)
+لوگوها داخل git ذخیره نمی‌شوند. می‌توانید آیکون‌های پروژهٔ [Simple Icons](https://simpleicons.org) را با git بگیرید و نصب کنید:
+```bash
+cd /tmp
+git clone --depth 1 --filter=blob:none --sparse https://github.com/simple-icons/simple-icons.git
+cd simple-icons && git sparse-checkout set icons
+cd ~/Desktop/watch-cats
+PYTHONPATH=src python3 -m watchcats install-logos --from /tmp/simple-icons/icons
+```
+بعد صفحه را رفرش کنید. سرویسی که فایل مناسب نداشته باشد با حرف نمایش داده می‌شود، و می‌توانید فایل `<کلید-سرویس>.svg` (یا png) را دستی در `src/watchcats/web/logos/` بگذارید. لوگوها متعلق به صاحبان آن‌هاست و فقط برای شناسایی سرویس نمایش داده می‌شود.
 
 ## ابزار کمکی ویندوز
 `tools/windows/epic-http-fix.ps1` — برای هر کامپیوتر ویندوزی یک‌بار اجرا شود تا Epic از HTTP دانلود کند و LanCache بتواند کشش کند.

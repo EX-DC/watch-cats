@@ -186,3 +186,17 @@ test('60-second chart draws the line only where samples exist', () => {
   assert.ok(parseFloat(pts[0]) > 95, 'the first point is at the right edge, not at the left');
   assert.strictEqual((WC.chart60Html([]).match(/<polyline points=""/g) || []).length, 1);
 });
+
+test('svcBadge shows a logo image when the file exists and letters otherwise', () => {
+  WC.setLogos({});
+  assert.match(WC.svcBadge('steam'), />ST</);
+  WC.setLogos({ steam: 'svg', xboxlive: 'svg', riot: 'png', blizzard: 'svg' });
+  assert.match(WC.svcBadge('steam', 'big'), /<img alt="" class="mono" src="\/static\/logos\/steam\.svg">/);
+  assert.match(WC.svcBadge('xbox_console'), /xboxlive\.svg/);
+  assert.match(WC.svcBadge('xbox_windows'), /xboxlive\.svg/);
+  assert.ok(!/mono/.test(WC.svcBadge('riot')), 'colour PNG logos are not recoloured');
+  assert.match(WC.svcBadge('blizzard'), /badge  dark|badge dark/);
+  assert.match(WC.svcBadge('epicgames'), />EG</);
+  assert.ok(!WC.svcBadge('"><script>').includes('<script>'));
+  WC.setLogos({});
+});

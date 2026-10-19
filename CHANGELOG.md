@@ -6,6 +6,16 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-10-18
+### Added
+- Service logos: the dashboard shows an image instead of the letters for every service that has a file in `src/watchcats/web/logos/<key>.svg|png|webp` (letters remain the fallback).
+  - `python -m watchcats install-logos --from <folder>` copies logos from a Simple Icons folder (rejects files that contain scripts).
+  - `GET /api/logos` lists the available logos; files are served with a strict file-name pattern and a sandboxing Content-Security-Policy.
+- `HEAD` requests are supported (for example `curl -I`).
+
+### Notes
+- Logo and font files are not stored in git (`.gitignore`). Logos belong to their owners and are only used to identify each service.
+
 ## [0.4.1] - 2026-10-13
 ### Fixed
 - HIT/MISS gauges: a first download from the internet no longer shows up as "served from cache". A cache MISS is proxied (it is counted in both the NIC's rx and tx), so the cache-serve speed is now `tx - rx` and the download speed is `rx`.
