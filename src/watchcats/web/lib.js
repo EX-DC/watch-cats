@@ -124,7 +124,18 @@
   /* ---------- HTML views (every dynamic value goes through esc) ---------- */
   const badge = (ic, bg, fg, cls) =>
     '<span class="badge ' + (cls || '') + '" style="background:' + esc(bg) + ';color:' + esc(fg) + '">' + esc(ic) + '</span>';
-  const svcBadge = (key, cls) => { const b = BRAND[key] || ['؟', '#4a5568', '#fff']; return badge(b[0], b[1], b[2], cls); };
+  let LOGOS = {};
+  const LOGO_ALIAS = { xbox_console: 'xboxlive', xbox_windows: 'xboxlive' };
+  const setLogos = (o) => { LOGOS = o || {}; };
+  const svcBadge = (key, cls) => {
+    const b = BRAND[key] || ['؟', '#4a5568', '#fff'], lk = LOGO_ALIAS[key] || key;
+    if (typeof lk === 'string' && /^[a-z0-9_]+$/.test(lk) && LOGOS[lk]) {
+      const ext = LOGOS[lk];
+      return '<span class="badge ' + (cls || '') + (b[2] === '#fff' ? '' : ' dark') + '" style="background:' + esc(b[1]) + '"><img alt="" class="' +
+        (ext === 'svg' ? 'mono' : '') + '" src="/static/logos/' + esc(lk) + '.' + esc(ext) + '"></span>';
+    }
+    return badge(b[0], b[1], b[2], cls);
+  };
   const devInfo = (kind) => DEVICE[kind] || DEVICE.unknown;
   const devBadge = (kind, cls) => { const d = devInfo(kind); return badge(d[0], d[1], '#fff', cls); };
 
@@ -264,6 +275,6 @@
         '</b> · <bdi>' + esc(g.topHosts.join('، ')) + '</bdi></span><span>' + esc(g.count) + ' مورد · آخرین: ' + esc(relTime(g.last, nowSec)) + ' · ' + fmtDateTime(g.last) + ' ' + (isOpen ? '▲' : '▼') + '</span></button>' + body + '</div>';
     }).join('');
   }
-  return { ltr, esc, fmtBytes, fmtMbps, fmtDateTime, fmtClock, lastSeenHtml, kindName, linScale, logScale, avg, niceMax, hourlyBars, serviceRows, serviceState, errorGroups, relTime, alertsFor,
+  return { setLogos, svcBadge, ltr, esc, fmtBytes, fmtMbps, fmtDateTime, fmtClock, lastSeenHtml, kindName, linScale, logScale, avg, niceMax, hourlyBars, serviceRows, serviceState, errorGroups, relTime, alertsFor,
     alertsHtml, gaugeHtml, clientsLiveHtml, serviceCardsHtml, kpisHtml, hwHtml, chart24Html, chart60Html, tableHtml, errorsHtml, BRAND, DEVICE };
 });

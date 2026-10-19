@@ -64,6 +64,7 @@
     Array.prototype.forEach.call($('scale-seg').querySelectorAll('button'), (x) => x.classList.toggle('on', x === b));
     $('chart24').innerHTML = WC.chart24Html(S.summary, now(), S.scale);
   });
+  fetch('/api/logos').then((r) => r.json()).then((d) => { WC.setLogos(d.logos); renderLive(); renderSummary(); }).catch(() => {});
   renderLive();
   loadSummary();
   setInterval(loadSummary, 30000);

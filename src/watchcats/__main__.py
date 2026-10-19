@@ -1,10 +1,11 @@
 import argparse
 import logging
+from pathlib import Path
 import sys
 import threading
 import time
 
-from . import __version__, fonts, presentation
+from . import __version__, fonts, logos, presentation
 from .domains import DomainMap
 from .api import make_server, parse_allow
 from .ingest import Ingestor
@@ -63,6 +64,19 @@ def cmd_install_font(a):
     return 0
 
 
+def cmd_install_logos(a):
+    if not a.src.is_dir():
+        print("folder not found: %s" % a.src, file=sys.stderr)
+        return 1
+    copied, missing = logos.install(a.src, a.dest)
+    for k, f in sorted(copied.items()):
+        print("  %-12s <- %s" % (k, f))
+    print("installed %d logos." % len(copied))
+    if missing:
+        print("no usable file for: %s (letters are shown instead; you can add <key>.svg by hand)" % ", ".join(missing))
+    return 0 if copied else 1
+
+
 def cmd_report(a):
     st = Storage(a.db)
     since = int(time.time()) - a.hours * 3600
@@ -117,6 +131,10 @@ def main(argv=None):
     f.add_argument("--url")
     f.add_argument("--dest", default=str(fonts.DEST))
     f.set_defaults(fn=cmd_install_font)
+    lg = sub.add_parser("install-logos", help="copy service logos from a Simple Icons folder (optional)")
+    lg.add_argument("--from", dest="src", type=Path, required=True, help="folder with the icons, e.g. simple-icons/icons")
+    lg.add_argument("--dest", type=Path, default=logos.DEST)
+    lg.set_defaults(fn=cmd_install_logos)
     r = sub.add_parser("report", help="print a summary from the database")
     r.add_argument("--db", default="watchcats.db")
     r.add_argument("--hours", type=int, default=24 * 365, help="how far back to look (default: everything)")

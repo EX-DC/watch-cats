@@ -1,6 +1,8 @@
 """Read-only JSON + Server-Sent-Events API (standard library only)."""
 import ipaddress
 import json
+import os
+import re
 import time
 from collections import defaultdict
 from pathlib import Path
@@ -29,6 +31,25 @@ def style_css(web=WEB):
 
 
 CSP = "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'"
+
+LOGO_RE = re.compile(r"^([a-z0-9_]+)\.(svg|png|webp)$")
+LOGO_TYPES = {"svg": "image/svg+xml", "png": "image/png", "webp": "image/webp"}
+LOGO_CSP = "default-src 'none'; style-src 'unsafe-inline'; sandbox"  # an SVG opened directly cannot run scripts
+
+
+def list_logos(web=None):
+    """{service key: file extension} for the logo files found in web/logos."""
+    out = {}
+    try:
+        names = sorted(os.listdir((web or WEB) / "logos"))
+    except OSError:
+        return out
+    for n in names:
+        m = LOGO_RE.match(n)
+        if m and m[1] not in out:
+            out[m[1]] = m[2]
+    return out
+
 
 PRIVATE_NETS = [ipaddress.ip_network(n) for n in (
     "127.0.0.0/8", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "::1/128", "fe80::/10", "fc00::/7")]
@@ -88,6 +109,11 @@ def summary(db_path, hours, hide=frozenset()):
 def make_server(host, port, hub, db_path, allow=None, hide_ips=frozenset()):
     class Handler(BaseHTTPRequestHandler):
         server_version = "WatchCats/" + __version__
+        _head = False
+
+        def do_HEAD(self):
+            self._head = True
+            self.do_GET()
 
         def log_message(self, *args):
             pass
@@ -99,7 +125,8 @@ def make_server(host, port, hub, db_path, allow=None, hide_ips=frozenset()):
             self.send_header("Content-Length", str(len(body)))
             self.send_header("Cache-Control", "no-store")
             self.end_headers()
-            self.wfile.write(body)
+            if not self._head:
+                self.wfile.write(body)
 
         def do_GET(self):
             if not is_allowed(self.client_address[0], allow):
@@ -130,6 +157,10 @@ def make_server(host, port, hub, db_path, allow=None, hide_ips=frozenset()):
                     st.close()
             if url.path == "/api/stream":
                 return self._stream()
+            if url.path == "/api/logos":
+                return self._json({"logos": list_logos()})
+            if url.path.startswith("/static/logos/"):
+                return self._logo(url.path[len("/static/logos/"):])
             if url.path in STATIC:
                 return self._static(*STATIC[url.path])
             return self._json({"error": "not found"}, 404)
@@ -147,7 +178,26 @@ def make_server(host, port, hub, db_path, allow=None, hide_ips=frozenset()):
             self.send_header("X-Content-Type-Options", "nosniff")
             self.send_header("Referrer-Policy", "no-referrer")
             self.end_headers()
-            self.wfile.write(body)
+            if not self._head:
+                self.wfile.write(body)
+
+        def _logo(self, name):
+            m = LOGO_RE.match(name)  # strict pattern: no slashes, no dots except the extension
+            try:
+                body = (WEB / "logos" / name).read_bytes() if m else None
+            except OSError:
+                body = None
+            if body is None:
+                return self._json({"error": "not found"}, 404)
+            self.send_response(200)
+            self.send_header("Content-Type", LOGO_TYPES[m[2]])
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "max-age=3600")
+            self.send_header("Content-Security-Policy", LOGO_CSP)
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.end_headers()
+            if not self._head:
+                self.wfile.write(body)
 
         def _stream(self):
             self.send_response(200)
@@ -155,6 +205,8 @@ def make_server(host, port, hub, db_path, allow=None, hide_ips=frozenset()):
             self.send_header("Cache-Control", "no-store")
             self.send_header("X-Accel-Buffering", "no")
             self.end_headers()
+            if self._head:
+                return
             seq = 0
             try:
                 while True:
