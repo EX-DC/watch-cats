@@ -6,6 +6,15 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.3] - 2026-10-24
+### Fixed
+- Logos that carry their own colours or a background (for example files downloaded from a website) were turned into a white square by the white-recolouring filter. Only plain one-colour icons are recoloured now; the others are shown as they are on a light badge. `GET /api/logos` reports `mono` for each file.
+- Logo file names with capital letters (for example `Nintendo.svg`) are accepted.
+- RAM is written as "used از total" so it cannot be read backwards in right-to-left text.
+
+### Added
+- Service logos in the clients table (`top_service_key` in `/api/summary`) and logos for the Windows, PlayStation and Xbox devices.
+
 ## [0.4.2] - 2026-10-18
 ### Added
 - Service logos: the dashboard shows an image instead of the letters for every service that has a file in `src/watchcats/web/logos/<key>.svg|png|webp` (letters remain the fallback).

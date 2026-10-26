@@ -29,7 +29,7 @@ header{display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:s
 .grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
 .row{display:flex;gap:10px;align-items:center}
 .badge{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;flex:0 0 38px;border-radius:10px;font-weight:700;font-size:16px}
-.badge img{width:62%;height:62%;object-fit:contain}.badge img.mono{filter:brightness(0) invert(1)}.badge.dark img.mono{filter:brightness(0)}
+.badge img{width:62%;height:62%;object-fit:contain}.badge.light{background:#fff}.badge.light img{width:78%;height:78%}.badge img.mono{filter:brightness(0) invert(1)}.badge.dark img.mono{filter:brightness(0)}
 .badge.big{width:48px;height:48px;flex-basis:48px;font-size:19px}.badge.sm{width:28px;height:28px;flex-basis:28px;font-size:13px}
 .cl{background:var(--bg);border-radius:12px;padding:18px;display:flex;justify-content:space-between;gap:12px}
 .cl-main{display:flex;flex-direction:column;gap:6px;min-width:0}.cl-side{display:flex;flex-direction:column;align-items:center;gap:4px}

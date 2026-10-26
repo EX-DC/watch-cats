@@ -79,6 +79,9 @@ class WebTests(unittest.TestCase):
         top = {c["ip"]: c["top_service"] for c in s["clients"]}
         self.assertEqual(top["192.168.1.152"], "PlayStation")
         self.assertEqual(top["192.168.1.101"], "Epic Games")
+        keys = {c["ip"]: c["top_service_key"] for c in s["clients"]}
+        self.assertEqual(keys["192.168.1.152"], "sony")
+        self.assertEqual(keys["192.168.1.101"], "epicgames")
 
 
 class ExcludeTests(unittest.TestCase):

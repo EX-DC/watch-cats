@@ -126,18 +126,24 @@
     '<span class="badge ' + (cls || '') + '" style="background:' + esc(bg) + ';color:' + esc(fg) + '">' + esc(ic) + '</span>';
   let LOGOS = {};
   const LOGO_ALIAS = { xbox_console: 'xboxlive', xbox_windows: 'xboxlive' };
-  const setLogos = (o) => { LOGOS = o || {}; };
+  const DEVICE_LOGO = { windows: 'wsus', ps5: 'sony', ps4: 'sony', xbox_console: 'xboxlive' };
+  const setLogos = (o) => {
+    LOGOS = {};
+    Object.keys(o || {}).forEach((k) => { const v = o[k]; LOGOS[k] = typeof v === 'string' ? { ext: v, mono: v === 'svg' } : v; });
+  };
+  /* mono logos are recoloured to fit the brand colour; logos with their own colours sit on a light badge as they are */
+  function logoBadge(lk, bg, fg, cls) {
+    if (typeof lk !== 'string' || !/^[a-z0-9_]+$/.test(lk) || !LOGOS[lk]) return null;
+    const L = LOGOS[lk], mono = !!L.mono;
+    return '<span class="badge ' + (cls || '') + (mono ? (fg === '#fff' ? '' : ' dark') : ' light') + '"' + (mono ? ' style="background:' + esc(bg) + '"' : '') +
+      '><img alt="" class="' + (mono ? 'mono' : '') + '" src="/static/logos/' + esc(lk) + '.' + esc(L.ext) + '"></span>';
+  }
   const svcBadge = (key, cls) => {
-    const b = BRAND[key] || ['؟', '#4a5568', '#fff'], lk = LOGO_ALIAS[key] || key;
-    if (typeof lk === 'string' && /^[a-z0-9_]+$/.test(lk) && LOGOS[lk]) {
-      const ext = LOGOS[lk];
-      return '<span class="badge ' + (cls || '') + (b[2] === '#fff' ? '' : ' dark') + '" style="background:' + esc(b[1]) + '"><img alt="" class="' +
-        (ext === 'svg' ? 'mono' : '') + '" src="/static/logos/' + esc(lk) + '.' + esc(ext) + '"></span>';
-    }
-    return badge(b[0], b[1], b[2], cls);
+    const b = BRAND[key] || ['؟', '#4a5568', '#fff'];
+    return logoBadge(LOGO_ALIAS[key] || key, b[1], b[2], cls) || badge(b[0], b[1], b[2], cls);
   };
   const devInfo = (kind) => DEVICE[kind] || DEVICE.unknown;
-  const devBadge = (kind, cls) => { const d = devInfo(kind); return badge(d[0], d[1], '#fff', cls); };
+  const devBadge = (kind, cls) => { const d = devInfo(kind); return logoBadge(DEVICE_LOGO[kind], d[1], '#fff', cls) || badge(d[0], d[1], '#fff', cls); };
 
   function alertsHtml(list) {
     return list.map((a) => '<div class="alert ' + a.c + '"><b>' + esc(a.s) + '</b><span>' + esc(a.n) +
@@ -200,7 +206,7 @@
     const t = (l, v, pct, c, sub) => '<div class="hw"><span class="muted">' + l + '</span><strong>' + esc(v) +
       '</strong><div class="track"><div class="fill" style="background:' + c + ';width:' + Math.min(100, pct) + '%"></div></div><small class="muted">' + esc(sub) + '</small></div>';
     return t('CPU', s.cpu.pct + '٪', s.cpu.pct, '#4da3ff', s.cpu.cores + ' هسته') +
-      t('RAM', fmtBytes(s.ram.used) + ' / ' + fmtBytes(s.ram.total), s.ram.pct, '#4da3ff', s.ram.pct + '٪ مصرف') +
+      t('RAM', fmtBytes(s.ram.used) + ' از ' + fmtBytes(s.ram.total), s.ram.pct, '#4da3ff', s.ram.pct + '٪ مصرف') +
       t('کارت شبکه', '↑ ' + fmtMbps(n.tx_mbps) + ' · ↓ ' + fmtMbps(n.rx_mbps), Math.max(n.tx_mbps, n.rx_mbps) / (n.link_mbps || 1000) * 100, '#3ddc97', 'ارسال به کلاینت‌ها · دریافت از اینترنت · ' + (n.iface || '')) +
       t('دیسک', d.pct + '٪ پر', d.pct, '#f5a524', 'خواندن ' + ltr(d.read_mb_s + ' MB/s') + ' · نوشتن ' + ltr(d.write_mb_s + ' MB/s'));
   }
@@ -261,7 +267,7 @@
     if (!rows.length) return '<p class="muted">در بازهٔ انتخاب‌شده کلاینتی ثبت نشده است.</p>';
     return '<div class="trow thead"><span>آی‌پی</span><span>دستگاه (خودکار)</span><span>سرویس اصلی</span><span>HIT</span><span>MISS</span><span>آخرین فعالیت</span></div>' +
       rows.slice(0, 15).map((r) => '<div class="trow"><span><bdi>' + esc(r.ip) + '</bdi></span><span class="row">' + devBadge(r.kind, 'sm') + esc(devInfo(r.kind)[2]) +
-        '</span><span>' + esc(r.top_service || '—') + '</span><span class="green">' + esc(fmtBytes(r.hit_bytes)) + '</span><span class="amber">' + esc(fmtBytes(r.miss_bytes)) +
+        '</span><span class="row">' + (r.top_service_key ? svcBadge(r.top_service_key, 'sm') : '') + esc(r.top_service || '—') + '</span><span class="green">' + esc(fmtBytes(r.hit_bytes)) + '</span><span class="amber">' + esc(fmtBytes(r.miss_bytes)) +
         '</span>' + lastSeenHtml(r.last_seen, nowSec).replace(/^<span class="live">/, '<span class="live">') + '</div>').join('');
   }
   function errorsHtml(groups, open, lines, nowSec) {

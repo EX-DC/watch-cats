@@ -31,6 +31,23 @@ class InstallLogosTests(unittest.TestCase):
             self.assertEqual(sorted(p.name for p in dest.iterdir()), ["sony.svg", "steam.svg", "wsus.svg"])
 
 
+class MonoDetectionTests(unittest.TestCase):
+    def mono(self, text):
+        with tempfile.TemporaryDirectory() as d:
+            f = Path(d) / "a.svg"
+            f.write_text(text)
+            return api._svg_is_mono(f)
+
+    def test_one_colour_icons_are_mono_and_coloured_ones_are_not(self):
+        self.assertTrue(self.mono(SVG))
+        self.assertTrue(self.mono('<svg role="img" fill="currentColor" viewBox="0 0 24 24"><title>x</title><path d="M0 0"/></svg>'))
+        self.assertTrue(self.mono('<svg fill="none"><path d="M0 0"/></svg>'))
+        self.assertFalse(self.mono('<svg><path d="M0 0" fill="#00a4ef"/></svg>'))
+        self.assertFalse(self.mono('<svg><rect width="24" height="24"/><path d="M0 0"/></svg>'))
+        self.assertFalse(self.mono('<svg><style>.a{fill:red}</style><path class="a" d="M0 0"/></svg>'))
+        self.assertFalse(self.mono('<svg><defs><linearGradient id="g"/></defs><path d="M0 0"/></svg>'))
+
+
 class LogoApiTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -41,6 +58,8 @@ class LogoApiTests(unittest.TestCase):
         (web / "logos" / "riot.png").write_bytes(b"\x89PNG\r\n\x1a\n" + b"0" * 20)
         (web / "logos" / "bad name.svg").write_text(SVG)
         (web / "logos" / "x.exe").write_text("x")
+        (web / "logos" / "Nintendo.svg").write_text(SVG)  # a capital letter in the file name is accepted
+        (web / "logos" / "wsus.svg").write_text('<svg xmlns="http://www.w3.org/2000/svg"><rect width="24" height="24" fill="#fff"/><path d="M0 0h9v9H0z" fill="#f25022"/></svg>')
         self.orig, api.WEB = api.WEB, web  # the API reads this module variable on every request
         self.tmp_env, self.srv, self.hub, self.base = env()
 
@@ -56,7 +75,10 @@ class LogoApiTests(unittest.TestCase):
 
     def test_listing_only_valid_files(self):
         import json
-        self.assertEqual(json.loads(self.get("/api/logos").read()), {"logos": {"riot": "png", "steam": "svg"}})
+        self.assertEqual(json.loads(self.get("/api/logos").read()), {"logos": {
+            "nintendo": {"ext": "svg", "mono": True}, "riot": {"ext": "png", "mono": False},
+            "steam": {"ext": "svg", "mono": True},
+            "wsus": {"ext": "svg", "mono": False}}})  # wsus has its own colours and background: shown as it is
 
     def test_logo_is_served_with_a_sandboxing_csp(self):
         with self.get("/static/logos/steam.svg") as r:
@@ -66,10 +88,15 @@ class LogoApiTests(unittest.TestCase):
             self.assertEqual(r.read().decode(), SVG)
         with self.get("/static/logos/riot.png") as r:
             self.assertEqual(r.headers["Content-Type"], "image/png")
+        for name in ("nintendo.svg", "Nintendo.svg"):  # lower-case key finds the capitalised file
+            with self.get("/static/logos/" + name) as r:
+                self.assertEqual(r.status, 200, name)
+                self.assertEqual(r.read().decode(), SVG)
 
     def test_nothing_else_is_served(self):
         for path in ("/static/logos/x.exe", "/static/logos/..%2fapi.py", "/static/logos/bad%20name.svg",
-                     "/static/logos/nothere.svg", "/static/logos/", "/static/logos/steam.svg/extra"):
+                     "/static/logos/nothere.svg", "/static/logos/", "/static/logos/steam.svg/extra",
+                     "/static/logos/steam.png"):  # wrong extension for an existing key
             with self.assertRaises(urllib.error.HTTPError, msg=path) as cm:
                 self.get(path)
             self.assertEqual(cm.exception.code, 404, path)

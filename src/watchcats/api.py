@@ -32,23 +32,47 @@ def style_css(web=WEB):
 
 CSP = "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'"
 
-LOGO_RE = re.compile(r"^([a-z0-9_]+)\.(svg|png|webp)$")
+LOGO_RE = re.compile(r"^([a-z0-9_]+)\.(svg|png|webp)$", re.I)  # file names may use capital letters
 LOGO_TYPES = {"svg": "image/svg+xml", "png": "image/png", "webp": "image/webp"}
 LOGO_CSP = "default-src 'none'; style-src 'unsafe-inline'; sandbox"  # an SVG opened directly cannot run scripts
+_NEUTRAL_FILL = re.compile(r"fill\s*=\s*[\"'](none|currentcolor)[\"']")
+_COLOUR_MARKERS = ("fill=", "fill:", "stroke=", "<lineargradient", "<radialgradient", "<image", "style=", "<style", "<rect")
 
 
-def list_logos(web=None):
-    """{service key: file extension} for the logo files found in web/logos."""
-    out = {}
+def _svg_is_mono(path):
+    """True for plain one-colour icons (Simple Icons style) that can be recoloured; False when the file
+    carries its own colours or a background, which must be shown as they are."""
+    try:
+        if path.stat().st_size > 100_000:
+            return False
+        t = _NEUTRAL_FILL.sub("", path.read_text(encoding="utf-8", errors="ignore").lower())
+    except OSError:
+        return False
+    return not any(m in t for m in _COLOUR_MARKERS)
+
+
+def _logo_files(web=None):
+    """{lower-case key: {"name": real file name, "ext": ext}}; svg wins over png over webp."""
+    out, rank = {}, {"svg": 0, "png": 1, "webp": 2}
     try:
         names = sorted(os.listdir((web or WEB) / "logos"))
     except OSError:
         return out
     for n in names:
         m = LOGO_RE.match(n)
-        if m and m[1] not in out:
-            out[m[1]] = m[2]
+        if not m:
+            continue
+        key, ext = m[1].lower(), m[2].lower()
+        if key not in out or rank[ext] < rank[out[key]["ext"]]:
+            out[key] = {"name": n, "ext": ext}
     return out
+
+
+def list_logos(web=None):
+    """{service key: {"ext": ..., "mono": bool}} for the logo files found in web/logos."""
+    web = web or WEB
+    return {k: {"ext": v["ext"], "mono": v["ext"] == "svg" and _svg_is_mono(web / "logos" / v["name"])}
+            for k, v in _logo_files(web).items()}
 
 
 PRIVATE_NETS = [ipaddress.ip_network(n) for n in (
@@ -92,7 +116,7 @@ def summary(db_path, hours, hide=frozenset()):
             if c["ip"] in hide:
                 continue
             best = max(top[c["ip"]], key=top[c["ip"]].get) if top[c["ip"]] else None
-            clients.append(dict(c, top_service=presentation.name(best) if best else None))
+            clients.append(dict(c, top_service=presentation.name(best) if best else None, top_service_key=best))
         services = sorted(({"key": k, "name": presentation.name(k), "hit_bytes": v[0], "miss_bytes": v[1],
                             "failed_requests": v[2]} for k, v in agg.items()), key=lambda r: -(r["hit_bytes"] + r["miss_bytes"]))
         hit = sum(s["hit_bytes"] for s in services)
@@ -183,14 +207,15 @@ def make_server(host, port, hub, db_path, allow=None, hide_ips=frozenset()):
 
         def _logo(self, name):
             m = LOGO_RE.match(name)  # strict pattern: no slashes, no dots except the extension
+            f = _logo_files().get(m[1].lower()) if m else None
             try:
-                body = (WEB / "logos" / name).read_bytes() if m else None
+                body = (WEB / "logos" / f["name"]).read_bytes() if f and f["ext"] == m[2].lower() else None
             except OSError:
                 body = None
             if body is None:
                 return self._json({"error": "not found"}, 404)
             self.send_response(200)
-            self.send_header("Content-Type", LOGO_TYPES[m[2]])
+            self.send_header("Content-Type", LOGO_TYPES[m[2].lower()])
             self.send_header("Content-Length", str(len(body)))
             self.send_header("Cache-Control", "max-age=3600")
             self.send_header("Content-Security-Policy", LOGO_CSP)

@@ -200,3 +200,36 @@ test('svcBadge shows a logo image when the file exists and letters otherwise', (
   assert.ok(!WC.svcBadge('"><script>').includes('<script>'));
   WC.setLogos({});
 });
+
+test('logos with their own colours sit on a light badge and are not recoloured', () => {
+  WC.setLogos({ wsus: { ext: 'svg', mono: false }, steam: { ext: 'svg', mono: true } });
+  const w = WC.svcBadge('wsus', 'big');
+  assert.match(w, /class="badge big light"/);
+  assert.ok(!/mono/.test(w));
+  assert.ok(!/style="background/.test(w));
+  const s = WC.svcBadge('steam');
+  assert.match(s, /class="mono"/);
+  assert.match(s, /style="background:#2a475e"/);
+  WC.setLogos({});
+});
+test('table shows a service logo next to the service name and device logos when available', () => {
+  const clients = [{ ip: '1.1.1.1', kind: 'windows', hit_bytes: 1, miss_bytes: 1, last_seen: 0, top_service: 'Steam', top_service_key: 'steam' },
+    { ip: '2.2.2.2', kind: 'ps5', hit_bytes: 1, miss_bytes: 1, last_seen: 0, top_service: 'PlayStation', top_service_key: 'sony' },
+    { ip: '3.3.3.3', kind: 'unknown', hit_bytes: 1, miss_bytes: 1, last_seen: 0, top_service: null, top_service_key: null }];
+  WC.setLogos({});
+  const letters = WC.tableHtml({ clients }, 100);
+  assert.match(letters, />ST</);
+  assert.match(letters, />⊞</);
+  WC.setLogos({ steam: 'svg', sony: 'svg', wsus: { ext: 'svg', mono: false } });
+  const t = WC.tableHtml({ clients }, 100);
+  assert.match(t, /logos\/steam\.svg/);
+  assert.match(t, /logos\/sony\.svg/);
+  assert.match(t, /logos\/wsus\.svg/);  // the Windows device uses the Windows logo
+  assert.ok(!/>ST</.test(t));
+  assert.match(t, /—/);  // no service known: no badge, just a dash
+  WC.setLogos({});
+});
+test('RAM is written as "used از total" so it cannot be read backwards', () => {
+  const live = JSON.parse(JSON.stringify({ system: { cpu: { pct: 1, cores: 2 }, ram: { total: 8.2e9, used: 6.1e9, pct: 74.5 }, net: { iface: 'e', rx_mbps: 0, tx_mbps: 0, link_mbps: 1000 }, disk: { pct: 5, read_mb_s: 0, write_mb_s: 0 } } }));
+  assert.match(WC.hwHtml(live), /6\.1 GB[\u2066\u2069 ]* از [\u2066 ]*8\.2 GB/);
+});
